@@ -1,21 +1,30 @@
+"""Setup script for PayTechUZ package."""
+
 import pathlib
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='paytechuz',
-    version='0.1.0',
+    version='0.1.3',
     license='MIT',
     author="Muhammadali Akbarov",
     author_email='muhammadali17abc@gmail.com',
-    description="Unified Python package for Uzbekistan payment gateways (Payme, Click)",
+    description="Unified Python package for Uzbekistan payment gateways",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/Muhammadali-Akbarov/paytechuz',
 
-    packages=find_packages(),
+    packages=find_namespace_packages(include=['paytechuz*']),
+    package_dir={
+        'paytechuz': 'src',
+    },
+    include_package_data=True,
+    package_data={
+        '': ['*.py'],
+    },
     python_requires='>=3.6',
 
     install_requires=[

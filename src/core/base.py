@@ -4,6 +4,7 @@ Base classes for payment gateways.
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional, Union
 
+
 class BasePaymentGateway(ABC):
     """
     Base class for all payment gateways.
@@ -23,7 +24,12 @@ class BasePaymentGateway(ABC):
         self.is_test_mode = is_test_mode
 
     @abstractmethod
-    def create_payment(self, amount: Union[int, float, str], account_id: Union[int, str], **kwargs) -> Dict[str, Any]:
+    def create_payment(
+        self,
+        amount: Union[int, float, str],
+        account_id: Union[int, str],
+        **kwargs
+    ) -> Dict[str, Any]:
         """
         Create a payment.
 
@@ -51,7 +57,11 @@ class BasePaymentGateway(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def cancel_payment(self, transaction_id: str, reason: Optional[str] = None) -> Dict[str, Any]:
+    def cancel_payment(
+        self,
+        transaction_id: str,
+        reason: Optional[str] = None
+    ) -> Dict[str, Any]:
         """
         Cancel payment.
 
@@ -63,7 +73,6 @@ class BasePaymentGateway(ABC):
             Dict containing cancellation status and details
         """
         raise NotImplementedError
-
 
 
 class BaseWebhookHandler(ABC):
