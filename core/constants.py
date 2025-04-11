@@ -3,7 +3,6 @@ Constants for payment gateways.
 """
 from enum import Enum
 
-
 class TransactionState(Enum):
     """Transaction states."""
     CREATED = 0
@@ -17,7 +16,6 @@ class PaymentGateway(Enum):
     """Payment gateway types."""
     PAYME = "payme"
     CLICK = "click"
-
 
 class PaymeEndpoints:
     """Payme API endpoints."""
@@ -39,7 +37,6 @@ class PaymeNetworks:
     TEST_NET = "https://checkout.test.paycom.uz/api"
     PROD_NET = "https://checkout.paycom.uz/api"
 
-
 class ClickEndpoints:
     """Click API endpoints."""
     PREPARE = "prepare"
@@ -51,7 +48,6 @@ class ClickNetworks:
     """Click API networks."""
     TEST_NET = "https://api.click.uz/v2/merchant"
     PROD_NET = "https://api.click.uz/v2/merchant"
-
 
 class ClickActions:
     """Click API actions."""

@@ -6,7 +6,6 @@ from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel, Field
 
-
 class PaymentTransactionBase(BaseModel):
     """
     Base schema for payment transaction.
@@ -24,7 +23,6 @@ class PaymentTransactionCreate(PaymentTransactionBase):
     """
     extra_data: Optional[Dict[str, Any]] = Field(None, description="Additional data for the transaction")
 
-
 class PaymentTransaction(PaymentTransactionBase):
     """
     Schema for payment transaction.
@@ -35,7 +33,7 @@ class PaymentTransaction(PaymentTransactionBase):
     updated_at: datetime = Field(..., description="Last update timestamp")
     performed_at: Optional[datetime] = Field(None, description="Payment timestamp")
     cancelled_at: Optional[datetime] = Field(None, description="Cancellation timestamp")
-    
+
     class Config:
         """
         Pydantic configuration.
@@ -49,7 +47,6 @@ class PaymentTransactionList(BaseModel):
     """
     transactions: List[PaymentTransaction] = Field(..., description="List of transactions")
     total: int = Field(..., description="Total number of transactions")
-
 
 class PaymeWebhookRequest(BaseModel):
     """
@@ -67,7 +64,6 @@ class PaymeWebhookResponse(BaseModel):
     jsonrpc: str = Field("2.0", description="JSON-RPC version")
     id: int = Field(..., description="Request ID")
     result: Dict[str, Any] = Field(..., description="Response result")
-
 
 class PaymeWebhookErrorResponse(BaseModel):
     """
@@ -91,7 +87,6 @@ class ClickWebhookRequest(BaseModel):
     sign_string: str = Field(..., description="Signature string")
     error: Optional[str] = Field(None, description="Error code")
     error_note: Optional[str] = Field(None, description="Error note")
-
 
 class ClickWebhookResponse(BaseModel):
     """

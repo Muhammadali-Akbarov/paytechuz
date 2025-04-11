@@ -16,7 +16,7 @@ payment_created = Signal()
 def handle_transaction_state_change(sender, instance, created, **kwargs):
     """
     Handle transaction state changes.
-    
+
     Args:
         sender: The model class
         instance: The actual instance being saved
@@ -30,14 +30,14 @@ def handle_transaction_state_change(sender, instance, created, **kwargs):
             transaction=instance
         )
         return
-    
+
     # Check if the transaction was marked as paid
     if instance.state == PaymentTransaction.SUCCESSFULLY:
         payment_successful.send(
             sender=sender,
             transaction=instance
         )
-    
+
     # Check if the transaction was marked as cancelled
     elif instance.state in [PaymentTransaction.CANCELLED, PaymentTransaction.CANCELLED_DURING_INIT]:
         payment_cancelled.send(

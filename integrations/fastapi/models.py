@@ -9,7 +9,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-
 class PaymentTransaction(Base):
     """
     Payment transaction model for storing payment information.

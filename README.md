@@ -31,8 +31,8 @@ pip install paytechuz[flask]
 from paytechuz import create_gateway
 
 # Create a Payme gateway
-payme = create_gateway('payme', 
-                      payme_id='your-payme-id', 
+payme = create_gateway('payme',
+                      payme_id='your-payme-id',
                       payme_key='your-payme-key',
                       is_test_mode=True)
 
@@ -164,6 +164,60 @@ with app.app_context():
 - Cancel payments
 - Merchant API operations
 - Webhook handling
+
+## Contributing
+
+### Development Setup
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Muhammadali-Akbarov/paytechuz.git
+   cd paytechuz
+   ```
+
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install the package in development mode:
+   ```bash
+   pip install -e .
+   ```
+
+### Running Tests
+
+```bash
+python -m unittest discover tests
+```
+
+### Creating a New Release
+
+We provide a script to help with creating new releases:
+
+```bash
+./create_release.sh
+```
+
+This script will:
+1. Ask for a new version number
+2. Update the version in setup.py
+3. Create a new branch and commit the changes
+4. Create a git tag for the release
+5. Push the branch and tag to GitHub (optional)
+
+### Publishing to PyPI
+
+To build and publish the package to PyPI, use the provided script:
+
+```bash
+./upload_to_pypi.sh
+```
+
+Alternatively, you can create a release on GitHub, and the GitHub Actions workflow will automatically publish the package to PyPI.
+
+For more details, see [PYPI_UPLOAD.md](PYPI_UPLOAD.md).
 
 ## License
 

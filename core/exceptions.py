@@ -3,17 +3,16 @@ Exceptions for payment gateways.
 """
 from typing import Optional, Dict, Any
 
-
 class PaymentException(Exception):
     """Base exception for all payment exceptions."""
     code = "payment_error"
     message = "Payment error occurred"
     data: Dict[str, Any] = {}
-    
+
     def __init__(self, message: Optional[str] = None, code: Optional[str] = None, data: Optional[Dict[str, Any]] = None):
         """
         Initialize the exception.
-        
+
         Args:
             message: Custom error message
             code: Custom error code
@@ -23,11 +22,11 @@ class PaymentException(Exception):
         self.code = code or self.code
         self.data = data or self.data
         super().__init__(self.message)
-    
+
     def as_dict(self) -> Dict[str, Any]:
         """
         Convert the exception to a dictionary.
-        
+
         Returns:
             Dict containing error details
         """
@@ -37,7 +36,6 @@ class PaymentException(Exception):
             "data": self.data
         }
 
-
 # Authentication and Authorization Exceptions
 class AuthenticationError(PaymentException):
     """Exception raised when authentication fails."""
@@ -45,17 +43,16 @@ class AuthenticationError(PaymentException):
     message = "Authentication failed"
 
 
+
 class InvalidCredentials(AuthenticationError):
     """Exception raised when credentials are invalid."""
     code = "invalid_credentials"
     message = "Invalid credentials provided"
 
-
 class PermissionDenied(AuthenticationError):
     """Exception raised when permission is denied."""
     code = "permission_denied"
     message = "Permission denied"
-
 
 # Transaction Exceptions
 class TransactionError(PaymentException):
@@ -69,7 +66,6 @@ class TransactionNotFound(TransactionError):
     code = "transaction_not_found"
     message = "Transaction not found"
 
-
 class TransactionAlreadyExists(TransactionError):
     """Exception raised when a transaction already exists."""
     code = "transaction_already_exists"
@@ -81,7 +77,6 @@ class TransactionCancelled(TransactionError):
     code = "transaction_cancelled"
     message = "Transaction has been cancelled"
 
-
 class TransactionInProgress(TransactionError):
     """Exception raised when a transaction is in progress."""
     code = "transaction_in_progress"
@@ -92,7 +87,6 @@ class TransactionCompleted(TransactionError):
     """Exception raised when a transaction is already completed."""
     code = "transaction_completed"
     message = "Transaction is already completed"
-
 
 # Account Exceptions
 class AccountError(PaymentException):
@@ -106,12 +100,10 @@ class AccountNotFound(AccountError):
     code = "account_not_found"
     message = "Account not found"
 
-
 class InvalidAccount(AccountError):
     """Exception raised when an account is invalid."""
     code = "invalid_account"
     message = "Invalid account"
-
 
 # Amount Exceptions
 class AmountError(PaymentException):
@@ -125,12 +117,10 @@ class InvalidAmount(AmountError):
     code = "invalid_amount"
     message = "Invalid amount"
 
-
 class InsufficientFunds(AmountError):
     """Exception raised when there are insufficient funds."""
     code = "insufficient_funds"
     message = "Insufficient funds"
-
 
 # Method Exceptions
 class MethodError(PaymentException):
@@ -144,12 +134,10 @@ class MethodNotFound(MethodError):
     code = "method_not_found"
     message = "Method not found"
 
-
 class UnsupportedMethod(MethodError):
     """Exception raised when a method is not supported."""
     code = "unsupported_method"
     message = "Method not supported"
-
 
 # System Exceptions
 class SystemError(PaymentException):
@@ -163,7 +151,6 @@ class InternalServiceError(SystemError):
     code = "internal_service_error"
     message = "Internal service error"
 
-
 class ExternalServiceError(SystemError):
     """Exception raised when an external service error occurs."""
     code = "external_service_error"
@@ -174,7 +161,6 @@ class TimeoutError(SystemError):
     """Exception raised when a timeout occurs."""
     code = "timeout_error"
     message = "Operation timed out"
-
 
 # Create a list of exceptions that should not be wrapped
 exception_whitelist = (

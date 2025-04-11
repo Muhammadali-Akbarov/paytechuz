@@ -142,7 +142,7 @@ class PaymeWebhookHandler:
                 status_code=200
             )
 
-        except PermissionDenied as e:
+        except PermissionDenied:
             return Response(
                 content=json.dumps({
                     'jsonrpc': '2.0',
@@ -254,7 +254,7 @@ class PaymeWebhookHandler:
                 raise PermissionDenied("Invalid authentication format")
 
             auth_decoded = base64.b64decode(auth_parts[1]).decode('utf-8')
-            username, password = auth_decoded.split(':')
+            _, password = auth_decoded.split(':')  # We only need the password
 
             if password != self.payme_key:
                 raise PermissionDenied("Invalid merchant key")
@@ -758,7 +758,7 @@ class ClickWebhookHandler:
             # Find account
             try:
                 account = self._find_account(merchant_trans_id)
-            except Exception as e:
+            except Exception:
                 logger.error(f"Account not found: {merchant_trans_id}")
                 return {
                     'click_trans_id': click_trans_id,
@@ -1008,8 +1008,8 @@ class ClickWebhookHandler:
         """
         pass
 
-
 # Create FastAPI routes
+
 
 @router.post("/payme/webhook")
 async def payme_webhook(

@@ -2,7 +2,7 @@
 Payme cards operations.
 """
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from paytechuz.core.http import HttpClient
 from paytechuz.core.constants import PaymeEndpoints
@@ -10,26 +10,25 @@ from paytechuz.core.utils import handle_exceptions
 
 logger = logging.getLogger(__name__)
 
-
 class PaymeCards:
     """
     Payme cards operations.
-    
+
     This class provides methods for working with cards in the Payme payment system,
     including creating cards, verifying cards, and removing cards.
     """
-    
+
     def __init__(self, http_client: HttpClient, payme_id: str):
         """
         Initialize the Payme cards component.
-        
+
         Args:
             http_client: HTTP client for making requests
             payme_id: Payme merchant ID
         """
         self.http_client = http_client
         self.payme_id = payme_id
-    
+
     @handle_exceptions
     def create(
         self,
@@ -40,7 +39,7 @@ class PaymeCards:
     ) -> Dict[str, Any]:
         """
         Create a new card.
-        
+
         Args:
             card_number: Card number
             expire_date: Card expiration date in format "MM/YY"
@@ -48,14 +47,14 @@ class PaymeCards:
             **kwargs: Additional parameters
                 - phone: Customer phone number
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing card creation response
         """
         # Extract additional parameters
         phone = kwargs.get('phone')
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.CARDS_CREATE,
@@ -68,23 +67,23 @@ class PaymeCards:
                 "merchant_id": self.payme_id
             }
         }
-        
+
         # Add optional parameters
         if phone:
             data["params"]["phone"] = phone
-        
+
         # Add language header
         headers = {"Accept-Language": language}
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def verify(
         self,
@@ -94,19 +93,19 @@ class PaymeCards:
     ) -> Dict[str, Any]:
         """
         Verify a card with the verification code.
-        
+
         Args:
             token: Card token received from create method
             code: Verification code sent to the card owner
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing card verification response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.CARDS_VERIFY,
@@ -115,27 +114,27 @@ class PaymeCards:
                 "code": code
             }
         }
-        
+
         # Add language header
         headers = {"Accept-Language": language}
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def check(self, token: str) -> Dict[str, Any]:
         """
         Check if a card exists and is active.
-        
+
         Args:
             token: Card token
-            
+
         Returns:
             Dict containing card check response
         """
@@ -146,23 +145,23 @@ class PaymeCards:
                 "token": token
             }
         }
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def remove(self, token: str) -> Dict[str, Any]:
         """
         Remove a card.
-        
+
         Args:
             token: Card token
-            
+
         Returns:
             Dict containing card removal response
         """
@@ -173,15 +172,15 @@ class PaymeCards:
                 "token": token
             }
         }
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def get_verify_code(
         self,
@@ -190,18 +189,18 @@ class PaymeCards:
     ) -> Dict[str, Any]:
         """
         Get a new verification code for a card.
-        
+
         Args:
             token: Card token
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing verification code response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.CARDS_GET_VERIFY_CODE,
@@ -209,15 +208,15 @@ class PaymeCards:
                 "token": token
             }
         }
-        
+
         # Add language header
         headers = {"Accept-Language": language}
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response

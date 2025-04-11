@@ -3,16 +3,15 @@ Initial migration for PayTechUZ.
 """
 from django.db import migrations, models
 
-
 class Migration(migrations.Migration):
     """
     Initial migration for PayTechUZ.
     """
-    
+
     initial = True
-    
+
     dependencies = []
-    
+
     operations = [
         migrations.CreateModel(
             name='PaymentTransaction',

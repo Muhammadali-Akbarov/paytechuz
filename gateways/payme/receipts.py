@@ -1,9 +1,9 @@
 """
 Payme receipts operations.
 """
-import base64
+# base64 is used indirectly through generate_basic_auth
 import logging
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional
 
 from paytechuz.core.http import HttpClient
 from paytechuz.core.constants import PaymeEndpoints
@@ -11,15 +11,14 @@ from paytechuz.core.utils import handle_exceptions, generate_basic_auth
 
 logger = logging.getLogger(__name__)
 
-
 class PaymeReceipts:
     """
     Payme receipts operations.
-    
+
     This class provides methods for working with receipts in the Payme payment system,
     including creating receipts, paying receipts, and checking receipt status.
     """
-    
+
     def __init__(
         self,
         http_client: HttpClient,
@@ -28,7 +27,7 @@ class PaymeReceipts:
     ):
         """
         Initialize the Payme receipts component.
-        
+
         Args:
             http_client: HTTP client for making requests
             payme_id: Payme merchant ID
@@ -37,25 +36,25 @@ class PaymeReceipts:
         self.http_client = http_client
         self.payme_id = payme_id
         self.payme_key = payme_key
-    
+
     def _get_auth_headers(self, language: str = 'uz') -> Dict[str, str]:
         """
         Get authentication headers for Payme API.
-        
+
         Args:
             language: Language code (uz, ru, en)
-            
+
         Returns:
             Dict containing authentication headers
         """
         headers = {"Accept-Language": language}
-        
+
         if self.payme_key:
             auth = generate_basic_auth(self.payme_id, self.payme_key)
             headers["Authorization"] = auth
-        
+
         return headers
-    
+
     @handle_exceptions
     def create(
         self,
@@ -65,7 +64,7 @@ class PaymeReceipts:
     ) -> Dict[str, Any]:
         """
         Create a new receipt.
-        
+
         Args:
             amount: Payment amount in tiyin (1 som = 100 tiyin)
             account: Account information (e.g., {"account_id": "12345"})
@@ -78,7 +77,7 @@ class PaymeReceipts:
                 - email: Customer email
                 - language: Language code (uz, ru, en)
                 - expire_minutes: Payment expiration time in minutes
-                
+
         Returns:
             Dict containing receipt creation response
         """
@@ -91,7 +90,7 @@ class PaymeReceipts:
         email = kwargs.get('email')
         language = kwargs.get('language', 'uz')
         expire_minutes = kwargs.get('expire_minutes', 60)  # Default 1 hour
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.RECEIPTS_CREATE,
@@ -103,35 +102,35 @@ class PaymeReceipts:
                 "merchant_id": self.payme_id
             }
         }
-        
+
         # Add optional parameters
         if callback_url:
             data["params"]["callback_url"] = callback_url
-        
+
         if return_url:
             data["params"]["return_url"] = return_url
-        
+
         if phone:
             data["params"]["phone"] = phone
-        
+
         if email:
             data["params"]["email"] = email
-        
+
         if expire_minutes:
             data["params"]["expire_minutes"] = expire_minutes
-        
+
         # Get authentication headers
         headers = self._get_auth_headers(language)
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def pay(
         self,
@@ -141,19 +140,19 @@ class PaymeReceipts:
     ) -> Dict[str, Any]:
         """
         Pay a receipt with a card token.
-        
+
         Args:
             receipt_id: Receipt ID
             token: Card token
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing receipt payment response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.RECEIPTS_PAY,
@@ -162,19 +161,19 @@ class PaymeReceipts:
                 "token": token
             }
         }
-        
+
         # Get authentication headers
         headers = self._get_auth_headers(language)
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def send(
         self,
@@ -184,19 +183,19 @@ class PaymeReceipts:
     ) -> Dict[str, Any]:
         """
         Send a receipt to a phone number.
-        
+
         Args:
             receipt_id: Receipt ID
             phone: Phone number
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing receipt sending response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.RECEIPTS_SEND,
@@ -205,35 +204,35 @@ class PaymeReceipts:
                 "phone": phone
             }
         }
-        
+
         # Get authentication headers
         headers = self._get_auth_headers(language)
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def check(self, receipt_id: str, **kwargs) -> Dict[str, Any]:
         """
         Check receipt status.
-        
+
         Args:
             receipt_id: Receipt ID
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing receipt status response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.RECEIPTS_CHECK,
@@ -241,19 +240,19 @@ class PaymeReceipts:
                 "id": receipt_id
             }
         }
-        
+
         # Get authentication headers
         headers = self._get_auth_headers(language)
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def cancel(
         self,
@@ -263,19 +262,19 @@ class PaymeReceipts:
     ) -> Dict[str, Any]:
         """
         Cancel a receipt.
-        
+
         Args:
             receipt_id: Receipt ID
             reason: Cancellation reason
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing receipt cancellation response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.RECEIPTS_CANCEL,
@@ -283,39 +282,39 @@ class PaymeReceipts:
                 "id": receipt_id
             }
         }
-        
+
         # Add reason if provided
         if reason:
             data["params"]["reason"] = reason
-        
+
         # Get authentication headers
         headers = self._get_auth_headers(language)
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response
-    
+
     @handle_exceptions
     def get(self, receipt_id: str, **kwargs) -> Dict[str, Any]:
         """
         Get receipt details.
-        
+
         Args:
             receipt_id: Receipt ID
             **kwargs: Additional parameters
                 - language: Language code (uz, ru, en)
-                
+
         Returns:
             Dict containing receipt details response
         """
         # Extract additional parameters
         language = kwargs.get('language', 'uz')
-        
+
         # Prepare request data
         data = {
             "method": PaymeEndpoints.RECEIPTS_GET,
@@ -323,15 +322,15 @@ class PaymeReceipts:
                 "id": receipt_id
             }
         }
-        
+
         # Get authentication headers
         headers = self._get_auth_headers(language)
-        
+
         # Make request
         response = self.http_client.post(
             endpoint="",
             json_data=data,
             headers=headers
         )
-        
+
         return response

@@ -26,7 +26,6 @@ from .models import PaymentTransaction
 
 logger = logging.getLogger(__name__)
 
-
 class PaymeWebhook(View):
     """
     Base Payme webhook handler for Django.
@@ -192,14 +191,14 @@ class PaymeWebhook(View):
         """
         # If one_time_payment is disabled, we still validate the amount
         # but we don't require it to match exactly
-        
+
         expected_amount = Decimal(getattr(account, self.amount_field)) * 100
         received_amount = Decimal(amount)
-        
+
         # If one_time_payment is enabled, amount must match exactly
         if self.one_time_payment and expected_amount != received_amount:
             raise InvalidAmount(f"Invalid amount. Expected: {expected_amount}, received: {received_amount}")
-        
+
         # If one_time_payment is disabled, amount must be positive
         if not self.one_time_payment and received_amount <= 0:
             raise InvalidAmount(f"Invalid amount. Amount must be positive, received: {received_amount}")
@@ -236,12 +235,12 @@ class PaymeWebhook(View):
                 gateway=PaymentTransaction.PAYME,
                 account_id=account.id
             ).exclude(transaction_id=transaction_id)
-            
+
             # Filter out transactions in final states (SUCCESSFULLY, CANCELLED)
             non_final_transactions = existing_transactions.exclude(
                 state__in=[PaymentTransaction.SUCCESSFULLY, PaymentTransaction.CANCELLED]
             )
-            
+
             if non_final_transactions.exists():
                 # If there's already a transaction for this account with a different transaction_id in a non-final state, raise an error
                 raise AccountNotFound(f"Account with {self.account_field}={account.id} already has a pending transaction")
@@ -346,10 +345,10 @@ class PaymeWebhook(View):
     def _cancel_response(self, transaction):
         """
         Helper method to generate cancel transaction response.
-        
+
         Args:
             transaction: Transaction object
-            
+
         Returns:
             Dict containing the response
         """
@@ -517,6 +516,7 @@ class PaymeWebhook(View):
             transactions: List of transactions
         """
         pass
+
 
 
 class ClickWebhook(View):

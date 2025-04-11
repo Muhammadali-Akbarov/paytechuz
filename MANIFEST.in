@@ -1,0 +1,16 @@
+include LICENSE
+include README.md
+include PYPI_UPLOAD.md
+recursive-include examples *
+recursive-exclude examples *.pyc
+recursive-exclude examples __pycache__
+recursive-exclude examples/shop_env *
+recursive-exclude examples/shop/media *
+recursive-exclude examples/shop/static/img *
+recursive-exclude examples/shop/db.sqlite3
+recursive-exclude tests *.pyc
+recursive-exclude tests __pycache__
+recursive-exclude * *.py[co]
+recursive-exclude * __pycache__
+recursive-exclude * *.so
+recursive-exclude * .DS_Store

@@ -20,7 +20,6 @@ from paytechuz.core.utils import handle_exceptions
 
 logger = logging.getLogger(__name__)
 
-
 class PaymeWebhookHandler(BaseWebhookHandler):
     """
     Payme webhook handler.

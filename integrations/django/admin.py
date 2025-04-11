@@ -6,7 +6,6 @@ from django.utils.html import format_html
 
 from .models import PaymentTransaction
 
-
 @admin.register(PaymentTransaction)
 class PaymentTransactionAdmin(admin.ModelAdmin):
     """
@@ -59,7 +58,7 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
     )
-    
+
     def state_display(self, obj):
         """
         Display the state with a colored badge.
@@ -75,5 +74,5 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
         elif obj.state == PaymentTransaction.CANCELLED_DURING_INIT:
             return format_html('<span style="background-color: #f8d7da; color: #721c24; padding: 3px 8px; border-radius: 4px;">Cancelled (Init)</span>')
         return obj.get_state_display()
-    
+
     state_display.short_description = 'State'

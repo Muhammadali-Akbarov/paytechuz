@@ -13,7 +13,6 @@ from paytechuz.gateways.payme.receipts import PaymeReceipts
 
 logger = logging.getLogger(__name__)
 
-
 class PaymeGateway(BasePaymentGateway):
     """
     Payme payment gateway implementation.

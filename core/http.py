@@ -14,18 +14,16 @@ from paytechuz.core.exceptions import (
     InternalServiceError
 )
 
-
 logger = logging.getLogger(__name__)
-
 
 class HttpClient:
     """
     HTTP client for making requests to payment gateways.
-    
+
     This class provides a simple interface for making HTTP requests to payment
     gateways with proper error handling and logging.
     """
-    
+
     def __init__(
         self,
         base_url: str,
@@ -35,7 +33,7 @@ class HttpClient:
     ):
         """
         Initialize the HTTP client.
-        
+
         Args:
             base_url: Base URL for the API
             headers: Default headers to include in all requests
@@ -46,30 +44,30 @@ class HttpClient:
         self.headers = headers or {}
         self.timeout = timeout
         self.verify_ssl = verify_ssl
-    
+
     def _build_url(self, endpoint: str) -> str:
         """
         Build the full URL for the given endpoint.
-        
+
         Args:
             endpoint: API endpoint
-            
+
         Returns:
             Full URL
         """
         endpoint = endpoint.lstrip('/')
         return f"{self.base_url}/{endpoint}"
-    
+
     def _handle_response(self, response: requests.Response) -> Dict[str, Any]:
         """
         Handle the response from the API.
-        
+
         Args:
             response: Response object
-            
+
         Returns:
             Response data as dictionary
-            
+
         Raises:
             ExternalServiceError: If the response status code is not 2xx
         """
@@ -85,12 +83,12 @@ class HttpClient:
                 error_data = response.json()
             except json.JSONDecodeError:
                 error_data = {"raw_response": response.text}
-            
+
             raise ExternalServiceError(
                 message=f"HTTP error: {response.status_code}",
                 data=error_data
             )
-    
+
     def request(
         self,
         method: str,
@@ -103,7 +101,7 @@ class HttpClient:
     ) -> Dict[str, Any]:
         """
         Make an HTTP request.
-        
+
         Args:
             method: HTTP method (GET, POST, PUT, DELETE, etc.)
             endpoint: API endpoint
@@ -112,10 +110,10 @@ class HttpClient:
             headers: Request headers
             json_data: JSON data
             timeout: Request timeout in seconds
-            
+
         Returns:
             Response data as dictionary
-            
+
         Raises:
             ExternalServiceError: If the request fails
             TimeoutError: If the request times out
@@ -124,9 +122,9 @@ class HttpClient:
         request_headers = {**self.headers}
         if headers:
             request_headers.update(headers)
-        
+
         timeout = timeout or self.timeout
-        
+
         try:
             response = requests.request(
                 method=method.upper(),
@@ -148,7 +146,7 @@ class HttpClient:
         except RequestException as e:
             logger.error(f"Request error: {e}")
             raise ExternalServiceError(f"Request error: {str(e)}")
-    
+
     def get(
         self,
         endpoint: str,
@@ -158,13 +156,13 @@ class HttpClient:
     ) -> Dict[str, Any]:
         """
         Make a GET request.
-        
+
         Args:
             endpoint: API endpoint
             params: Query parameters
             headers: Request headers
             timeout: Request timeout in seconds
-            
+
         Returns:
             Response data as dictionary
         """
@@ -175,7 +173,7 @@ class HttpClient:
             headers=headers,
             timeout=timeout
         )
-    
+
     def post(
         self,
         endpoint: str,
@@ -187,7 +185,7 @@ class HttpClient:
     ) -> Dict[str, Any]:
         """
         Make a POST request.
-        
+
         Args:
             endpoint: API endpoint
             data: Form data
@@ -195,7 +193,7 @@ class HttpClient:
             params: Query parameters
             headers: Request headers
             timeout: Request timeout in seconds
-            
+
         Returns:
             Response data as dictionary
         """
@@ -208,7 +206,7 @@ class HttpClient:
             headers=headers,
             timeout=timeout
         )
-    
+
     def put(
         self,
         endpoint: str,
@@ -220,7 +218,7 @@ class HttpClient:
     ) -> Dict[str, Any]:
         """
         Make a PUT request.
-        
+
         Args:
             endpoint: API endpoint
             data: Form data
@@ -228,7 +226,7 @@ class HttpClient:
             params: Query parameters
             headers: Request headers
             timeout: Request timeout in seconds
-            
+
         Returns:
             Response data as dictionary
         """
@@ -241,7 +239,7 @@ class HttpClient:
             headers=headers,
             timeout=timeout
         )
-    
+
     def delete(
         self,
         endpoint: str,
@@ -251,13 +249,13 @@ class HttpClient:
     ) -> Dict[str, Any]:
         """
         Make a DELETE request.
-        
+
         Args:
             endpoint: API endpoint
             params: Query parameters
             headers: Request headers
             timeout: Request timeout in seconds
-            
+
         Returns:
             Response data as dictionary
         """

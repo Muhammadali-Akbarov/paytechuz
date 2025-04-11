@@ -14,15 +14,15 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/Muhammadali-Akbarov/paytechuz',
-    
+
     packages=find_packages(),
     python_requires='>=3.6',
-    
+
     install_requires=[
         'requests>=2.0,<3.0',
         "dataclasses>=0.6,<1.0; python_version<'3.7'",
     ],
-    
+
     extras_require={
         'django': [
             'django>=3.0,<5.0',
@@ -40,12 +40,12 @@ setup(
             'flask-sqlalchemy>=2.5,<3.0',
         ],
     },
-    
+
     keywords=[
         "paytechuz", "payme", "click", "uzbekistan", "payment", "gateway",
         "payment-gateway", "payment-processing", "django", "flask", "fastapi"
     ],
-    
+
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
