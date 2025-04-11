@@ -1,0 +1,3 @@
+"""
+Flask example for PayTechUZ.
+"""

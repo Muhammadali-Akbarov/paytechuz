@@ -1,0 +1,3 @@
+"""
+FastAPI example for PayTechUZ.
+"""
