@@ -9,7 +9,14 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Any, Optional, Callable
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status
+)
 from sqlalchemy.orm import Session
 
 from paytechuz.core.exceptions import (
@@ -47,7 +54,9 @@ class PaymeWebhookHandler:
             print(f"Payment successful: {transaction.transaction_id}")
 
             # Update your order status
-            order = db.query(Order).filter(Order.id == transaction.account_id).first()
+            order = db.query(Order).filter(
+                Order.id == transaction.account_id
+            ).first()
             order.status = 'paid'
             db.commit()
     ```
@@ -176,7 +185,8 @@ class PaymeWebhookHandler:
                     'jsonrpc': '2.0',
                     'id': request_id if 'request_id' in locals() else 0,
                     'error': {
-                        'code': -31050,  # Code for account not found, in the range -31099 to -31050
+                        # Code for account not found, in the range -31099 to -31050
+                        'code': -31050,
                         'message': str(e)
                     }
                 }),
@@ -204,7 +214,8 @@ class PaymeWebhookHandler:
                     'jsonrpc': '2.0',
                     'id': request_id if 'request_id' in locals() else 0,
                     'error': {
-                        'code': -31050,  # Code for invalid account, in the range -31099 to -31050
+                        # Code for invalid account, in the range -31099 to -31050
+                        'code': -31050,
                         'message': str(e)
                     }
                 }),
@@ -274,15 +285,22 @@ class PaymeWebhookHandler:
             raise AccountNotFound("Account not found in parameters")
 
         # Handle special case for 'order_id' field
-        lookup_field = 'id' if self.account_field == 'order_id' else self.account_field
+        lookup_field = 'id' if self.account_field == 'order_id' else (
+            self.account_field
+        )
 
         # Try to convert account_value to int if it's a string and lookup_field is 'id'
-        if lookup_field == 'id' and isinstance(account_value, str) and account_value.isdigit():
+        if (lookup_field == 'id' and isinstance(account_value, str) and
+                account_value.isdigit()):
             account_value = int(account_value)
 
-        account = self.db.query(self.account_model).filter_by(**{lookup_field: account_value}).first()
+        account = self.db.query(self.account_model).filter_by(
+            **{lookup_field: account_value}
+        ).first()
         if not account:
-            raise AccountNotFound(f"Account with {self.account_field}={account_value} not found")
+            raise AccountNotFound(
+                f"Account with {self.account_field}={account_value} not found"
+            )
 
         return account
 
@@ -299,7 +317,8 @@ class PaymeWebhookHandler:
         # If one_time_payment is enabled, amount must match exactly
         if self.one_time_payment and expected_amount != received_amount:
             raise InvalidAmount(
-                f"Invalid amount. Expected: {expected_amount}, received: {received_amount}"
+                (f"Invalid amount. Expected: {expected_amount}, "
+                 f"received: {received_amount}")
             )
 
         # If one_time_payment is disabled, amount must be positive

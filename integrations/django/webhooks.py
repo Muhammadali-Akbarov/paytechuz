@@ -10,7 +10,6 @@ from datetime import datetime
 
 from django.conf import settings
 from django.http import JsonResponse
-from django.utils import timezone
 from django.utils.module_loading import import_string
 from django.views import View
 
@@ -26,6 +25,7 @@ from .models import PaymentTransaction
 
 logger = logging.getLogger(__name__)
 
+
 class PaymeWebhook(View):
     """
     Base Payme webhook handler for Django.
@@ -40,21 +40,30 @@ class PaymeWebhook(View):
 
         # Try to get the account model from settings
         # Get the account model from settings
-        account_model_path = getattr(settings, 'PAYME_ACCOUNT_MODEL', 'django.contrib.auth.models.User')
+        account_model_path = getattr(
+            settings, 'PAYME_ACCOUNT_MODEL', 'django.contrib.auth.models.User'
+        )
         try:
             self.account_model = import_string(account_model_path)
         except ImportError:
             # If the model is not found, log an error and raise an exception
-            logger.error(f"Could not import {account_model_path}. Please check your PAYME_ACCOUNT_MODEL setting.")
-            raise ImportError(f"Could not import {account_model_path}. Please check your PAYME_ACCOUNT_MODEL setting.")
+            logger.error(
+                "Could not import %s. Check PAYME_ACCOUNT_MODEL setting.",
+                account_model_path
+            )
+            raise ImportError(
+                f"Import error: {account_model_path}"
+            ) from None
 
         self.account_field = getattr(settings, 'PAYME_ACCOUNT_FIELD', 'id')
         self.amount_field = getattr(settings, 'PAYME_AMOUNT_FIELD', 'amount')
-        self.one_time_payment = getattr(settings, 'PAYME_ONE_TIME_PAYMENT', True)
+        self.one_time_payment = getattr(
+            settings, 'PAYME_ONE_TIME_PAYMENT', True
+        )
         self.payme_id = getattr(settings, 'PAYME_ID', '')
         self.payme_key = getattr(settings, 'PAYME_KEY', '')
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, **_):
         """
         Handle POST requests from Payme.
         """
@@ -116,7 +125,8 @@ class PaymeWebhook(View):
                 'jsonrpc': '2.0',
                 'id': request_id if 'request_id' in locals() else 0,
                 'error': {
-                    'code': -31050,  # Code for account not found, in the range -31099 to -31050
+                    # Code for account not found, in the range -31099 to -31050
+                    'code': -31050,
                     'message': str(e)
                 }
             }, status=200)  # Return 200 status code for all errors
@@ -131,8 +141,8 @@ class PaymeWebhook(View):
                 }
             }, status=200)  # Return 200 status code for all errors
 
-        except Exception as e:
-            logger.exception(f"Unexpected error in Payme webhook: {e}")
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("Unexpected error in Payme webhook: %s", e)
             return JsonResponse({
                 'jsonrpc': '2.0',
                 'id': request_id if 'request_id' in locals() else 0,
@@ -156,13 +166,13 @@ class PaymeWebhook(View):
                 raise PermissionDenied("Invalid authentication format")
 
             auth_decoded = base64.b64decode(auth_parts[1]).decode('utf-8')
-            username, password = auth_decoded.split(':')
+            _, password = auth_decoded.split(':')  # We only need the password
 
             if password != self.payme_key:
                 raise PermissionDenied("Invalid merchant key")
         except Exception as e:
-            logger.error(f"Authentication error: {e}")
-            raise PermissionDenied("Authentication error")
+            logger.error("Authentication error: %s", e)
+            raise PermissionDenied("Authentication error") from e
 
     def _find_account(self, params):
         """
@@ -174,16 +184,24 @@ class PaymeWebhook(View):
 
         try:
             # Handle special case for 'order_id' field
-            lookup_field = 'id' if self.account_field == 'order_id' else self.account_field
+            # Handle special case for 'order_id' field
+            lookup_field = 'id' if self.account_field == 'order_id' else (
+                self.account_field
+            )
 
-            # Try to convert account_value to int if it's a string and lookup_field is 'id'
-            if lookup_field == 'id' and isinstance(account_value, str) and account_value.isdigit():
+            # Convert account_value to int if needed
+            if (lookup_field == 'id' and isinstance(account_value, str)
+                    and account_value.isdigit()):
                 account_value = int(account_value)
 
-            account = self.account_model.objects.get(**{lookup_field: account_value})
+            # Use model manager to find account
+            lookup_kwargs = {lookup_field: account_value}
+            account = self.account_model._default_manager.get(**lookup_kwargs)
             return account
         except self.account_model.DoesNotExist:
-            raise AccountNotFound(f"Account with {self.account_field}={account_value} not found")
+            raise AccountNotFound(
+                f"Account with {self.account_field}={account_value} not found"
+            ) from None
 
     def _validate_amount(self, account, amount):
         """
@@ -197,11 +215,17 @@ class PaymeWebhook(View):
 
         # If one_time_payment is enabled, amount must match exactly
         if self.one_time_payment and expected_amount != received_amount:
-            raise InvalidAmount(f"Invalid amount. Expected: {expected_amount}, received: {received_amount}")
+            raise InvalidAmount(
+                f"Invalid amount. Expected: {expected_amount}, "
+                f"received: {received_amount}"
+            )
 
         # If one_time_payment is disabled, amount must be positive
         if not self.one_time_payment and received_amount <= 0:
-            raise InvalidAmount(f"Invalid amount. Amount must be positive, received: {received_amount}")
+            raise InvalidAmount(
+                f"Invalid amount. Amount must be positive, "
+                f"received: {received_amount}"
+            )
 
         return True
 
@@ -227,27 +251,36 @@ class PaymeWebhook(View):
 
         self._validate_amount(account, amount)
 
-        # Check if there's already a transaction for this account with a different transaction_id
+        # Check if there's already a transaction for this account
+        # with a different transaction_id
         # Only check if one_time_payment is enabled
         if self.one_time_payment:
             # Check for existing transactions in non-final states
-            existing_transactions = PaymentTransaction.objects.filter(
+            existing_transactions = PaymentTransaction._default_manager.filter(
                 gateway=PaymentTransaction.PAYME,
                 account_id=account.id
             ).exclude(transaction_id=transaction_id)
 
-            # Filter out transactions in final states (SUCCESSFULLY, CANCELLED)
+            # Filter out transactions in final states
             non_final_transactions = existing_transactions.exclude(
-                state__in=[PaymentTransaction.SUCCESSFULLY, PaymentTransaction.CANCELLED]
+                state__in=[
+                    PaymentTransaction.SUCCESSFULLY,
+                    PaymentTransaction.CANCELLED
+                ]
             )
 
             if non_final_transactions.exists():
-                # If there's already a transaction for this account with a different transaction_id in a non-final state, raise an error
-                raise AccountNotFound(f"Account with {self.account_field}={account.id} already has a pending transaction")
+                # If there's already a transaction for this account with a different
+                # transaction ID in a non-final state, raise an error
+                msg = (
+                    f"Account with {self.account_field}={account.id} "
+                    "already has a pending transaction"
+                )
+                raise AccountNotFound(msg)
 
         # Check for existing transaction with the same transaction_id
         try:
-            transaction = PaymentTransaction.objects.get(
+            transaction = PaymentTransaction._default_manager.get(
                 gateway=PaymentTransaction.PAYME,
                 transaction_id=transaction_id
             )
@@ -261,6 +294,7 @@ class PaymeWebhook(View):
                 'create_time': int(transaction.created_at.timestamp() * 1000),
             }
         except PaymentTransaction.DoesNotExist:
+            # No existing transaction found, continue with creation
             pass
 
         # Create new transaction
@@ -271,7 +305,9 @@ class PaymeWebhook(View):
             amount=Decimal(amount) / 100,  # Convert from tiyin to som
             extra_data={
                 'account_field': self.account_field,
-                'account_value': params.get('account', {}).get(self.account_field),
+                'account_value': (params.get('account', {}).get(
+                    self.account_field
+                )),
                 'create_time': params.get('time'),
                 'raw_params': params
             }
@@ -297,12 +333,14 @@ class PaymeWebhook(View):
         transaction_id = params.get('id')
 
         try:
-            transaction = PaymentTransaction.objects.get(
+            transaction = PaymentTransaction._default_manager.get(
                 gateway=PaymentTransaction.PAYME,
                 transaction_id=transaction_id
             )
         except PaymentTransaction.DoesNotExist:
-            raise TransactionNotFound(f"Transaction {transaction_id} not found")
+            raise TransactionNotFound(
+                f"Transaction {transaction_id} not found"
+            ) from None
 
         # Mark transaction as paid
         transaction.mark_as_paid()
@@ -313,7 +351,10 @@ class PaymeWebhook(View):
         return {
             'transaction': transaction.transaction_id,
             'state': transaction.state,
-            'perform_time': int(transaction.performed_at.timestamp() * 1000) if transaction.performed_at else 0,
+            'perform_time': (
+                int(transaction.performed_at.timestamp() * 1000)
+                if transaction.performed_at else 0
+            ),
         }
 
     def _check_transaction(self, params):
@@ -323,12 +364,14 @@ class PaymeWebhook(View):
         transaction_id = params.get('id')
 
         try:
-            transaction = PaymentTransaction.objects.get(
+            transaction = PaymentTransaction._default_manager.get(
                 gateway=PaymentTransaction.PAYME,
                 transaction_id=transaction_id
             )
         except PaymentTransaction.DoesNotExist:
-            raise TransactionNotFound(f"Transaction {transaction_id} not found")
+            raise TransactionNotFound(
+                f"Transaction {transaction_id} not found"
+            ) from None
 
         # Call the event method
         self.check_transaction(params, transaction)
@@ -337,9 +380,15 @@ class PaymeWebhook(View):
             'transaction': transaction.transaction_id,
             'state': transaction.state,
             'create_time': int(transaction.created_at.timestamp() * 1000),
-            'perform_time': int(transaction.performed_at.timestamp() * 1000) if transaction.performed_at else 0,
-            'cancel_time': int(transaction.cancelled_at.timestamp() * 1000) if transaction.cancelled_at else 0,
-            'reason': transaction.extra_data.get('cancel_reason'),
+            'perform_time': (
+                int(transaction.performed_at.timestamp() * 1000)
+                if transaction.performed_at else 0
+            ),
+            'cancel_time': (
+                int(transaction.cancelled_at.timestamp() * 1000)
+                if transaction.cancelled_at else 0
+            ),
+            'reason': transaction.reason,
         }
 
     def _cancel_response(self, transaction):
@@ -355,7 +404,10 @@ class PaymeWebhook(View):
         return {
             'transaction': transaction.transaction_id,
             'state': transaction.state,
-            'cancel_time': int(transaction.cancelled_at.timestamp() * 1000) if transaction.cancelled_at else 0,
+            'cancel_time': (
+                int(transaction.cancelled_at.timestamp() * 1000)
+                if transaction.cancelled_at else 0
+            ),
         }
 
     def _cancel_transaction(self, params):
@@ -366,30 +418,22 @@ class PaymeWebhook(View):
         reason = params.get('reason')
 
         try:
-            transaction = PaymentTransaction.objects.get(
+            transaction = PaymentTransaction._default_manager.get(
                 gateway=PaymentTransaction.PAYME,
                 transaction_id=transaction_id
             )
         except PaymentTransaction.DoesNotExist:
-            raise TransactionNotFound(f"Transaction {transaction_id} not found")
+            raise TransactionNotFound(
+                f"Transaction {transaction_id} not found"
+            ) from None
 
         # Check if transaction is already cancelled
         if transaction.state == PaymentTransaction.CANCELLED:
             # If transaction is already cancelled, return the existing data
             return self._cancel_response(transaction)
 
-        # Always set state to CANCELLED (-2) for Payme API compatibility
-        # regardless of the current state
-        transaction.state = PaymentTransaction.CANCELLED
-        transaction.cancelled_at = timezone.now()
-
-        # Store reason in extra_data if provided
-        if reason:
-            extra_data = transaction.extra_data or {}
-            extra_data['cancel_reason'] = reason
-            transaction.extra_data = extra_data
-
-        transaction.save()
+        # Use the mark_as_cancelled method to properly store the reason
+        transaction.mark_as_cancelled(reason=reason)
 
         # Call the event method
         self.cancelled_payment(params, transaction)
@@ -416,7 +460,7 @@ class PaymeWebhook(View):
             to_datetime = datetime.now()  # Current time
 
         # Get transactions in the date range
-        transactions = PaymentTransaction.objects.filter(
+        transactions = PaymentTransaction._default_manager.filter(
             gateway=PaymentTransaction.PAYME,
             created_at__gte=from_datetime,
             created_at__lte=to_datetime
@@ -434,9 +478,15 @@ class PaymeWebhook(View):
                 },
                 'state': transaction.state,
                 'create_time': int(transaction.created_at.timestamp() * 1000),
-                'perform_time': int(transaction.performed_at.timestamp() * 1000) if transaction.performed_at else 0,
-                'cancel_time': int(transaction.cancelled_at.timestamp() * 1000) if transaction.cancelled_at else 0,
-                'reason': transaction.extra_data.get('cancel_reason') if transaction.extra_data else None,
+                'perform_time': (
+                    int(transaction.performed_at.timestamp() * 1000)
+                    if transaction.performed_at else 0
+                ),
+                'cancel_time': (
+                    int(transaction.cancelled_at.timestamp() * 1000)
+                    if transaction.cancelled_at else 0
+                ),
+                'reason': transaction.reason,
             })
 
         # Call the event method
@@ -454,7 +504,7 @@ class PaymeWebhook(View):
             params: Request parameters
             account: Account object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def transaction_already_exists(self, params, transaction):
         """
@@ -464,7 +514,7 @@ class PaymeWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def transaction_created(self, params, transaction, account):
         """
@@ -475,7 +525,7 @@ class PaymeWebhook(View):
             transaction: Transaction object
             account: Account object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def successfully_payment(self, params, transaction):
         """
@@ -485,7 +535,7 @@ class PaymeWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def check_transaction(self, params, transaction):
         """
@@ -495,7 +545,7 @@ class PaymeWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def cancelled_payment(self, params, transaction):
         """
@@ -505,7 +555,7 @@ class PaymeWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def get_statement(self, params, transactions):
         """
@@ -515,8 +565,7 @@ class PaymeWebhook(View):
             params: Request parameters
             transactions: List of transactions
         """
-        pass
-
+        # This method is meant to be overridden by subclasses
 
 
 class ClickWebhook(View):
@@ -533,19 +582,28 @@ class ClickWebhook(View):
 
         # Try to get the account model from settings
         # Get the account model from settings
-        account_model_path = getattr(settings, 'CLICK_ACCOUNT_MODEL', 'django.contrib.auth.models.User')
+        account_model_path = getattr(
+            settings, 'CLICK_ACCOUNT_MODEL', 'django.contrib.auth.models.User'
+        )
         try:
             self.account_model = import_string(account_model_path)
         except ImportError:
             # If the model is not found, log an error and raise an exception
-            logger.error(f"Could not import {account_model_path}. Please check your CLICK_ACCOUNT_MODEL setting.")
-            raise ImportError(f"Could not import {account_model_path}. Please check your CLICK_ACCOUNT_MODEL setting.")
+            logger.error(
+                "Could not import %s. Check CLICK_ACCOUNT_MODEL setting.",
+                account_model_path
+            )
+            raise ImportError(
+                f"Import error: {account_model_path}"
+            ) from None
 
         self.service_id = getattr(settings, 'CLICK_SERVICE_ID', '')
         self.secret_key = getattr(settings, 'CLICK_SECRET_KEY', '')
-        self.commission_percent = getattr(settings, 'CLICK_COMMISSION_PERCENT', 0.0)
+        self.commission_percent = getattr(
+            settings, 'CLICK_COMMISSION_PERCENT', 0.0
+        )
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, **_):
         """
         Handle POST requests from Click.
         """
@@ -567,7 +625,7 @@ class ClickWebhook(View):
             try:
                 account = self._find_account(merchant_trans_id)
             except AccountNotFound:
-                logger.error(f"Account not found: {merchant_trans_id}")
+                logger.error("Account not found: %s", merchant_trans_id)
                 return JsonResponse({
                     'click_trans_id': click_trans_id,
                     'merchant_trans_id': merchant_trans_id,
@@ -577,9 +635,11 @@ class ClickWebhook(View):
 
             # Validate amount
             try:
-                self._validate_amount(amount, float(getattr(account, 'amount', 0)))
+                # Get amount from account and validate
+                account_amount = float(getattr(account, 'amount', 0))
+                self._validate_amount(amount, account_amount)
             except InvalidAmount as e:
-                logger.error(f"Invalid amount: {e}")
+                logger.error("Invalid amount: %s", e)
                 return JsonResponse({
                     'click_trans_id': click_trans_id,
                     'merchant_trans_id': merchant_trans_id,
@@ -589,7 +649,7 @@ class ClickWebhook(View):
 
             # Check if transaction already exists
             try:
-                transaction = PaymentTransaction.objects.get(
+                transaction = PaymentTransaction._default_manager.get(
                     gateway=PaymentTransaction.CLICK,
                     transaction_id=click_trans_id
                 )
@@ -648,12 +708,13 @@ class ClickWebhook(View):
                     'error_note': "Success"
                 })
 
-            elif action == 1:  # Complete
+            # Complete action
+            if action == 1:
                 # Check if error is negative (payment failed)
                 is_successful = error >= 0
 
                 try:
-                    transaction = PaymentTransaction.objects.get(
+                    transaction = PaymentTransaction._default_manager.get(
                         gateway=PaymentTransaction.CLICK,
                         transaction_id=click_trans_id
                     )
@@ -677,7 +738,9 @@ class ClickWebhook(View):
                     self.successfully_payment(params, transaction)
                 else:
                     # Mark transaction as cancelled
-                    transaction.mark_as_cancelled(reason=f"Error code: {error}")
+                    transaction.mark_as_cancelled(
+                        reason=f"Error code: {error}"
+                    )
 
                     # Call the event method
                     self.cancelled_payment(params, transaction)
@@ -690,17 +753,17 @@ class ClickWebhook(View):
                     'error_note': "Success"
                 })
 
-            else:
-                logger.error(f"Unsupported action: {action}")
-                return JsonResponse({
-                    'click_trans_id': click_trans_id,
-                    'merchant_trans_id': merchant_trans_id,
-                    'error': -3,
-                    'error_note': "Action not found"
-                }, status=200)  # Return 200 status code for all errors
+            # Handle unsupported action
+            logger.error("Unsupported action: %s", action)
+            return JsonResponse({
+                'click_trans_id': click_trans_id,
+                'merchant_trans_id': merchant_trans_id,
+                'error': -3,
+                'error_note': "Action not found"
+            }, status=200)  # Return 200 status code for all errors
 
-        except Exception as e:
-            logger.exception(f"Unexpected error in Click webhook: {e}")
+        except Exception as e:  # pylint: disable=broad-except
+            logger.exception("Unexpected error in Click webhook: %s", e)
             return JsonResponse({
                 'error': -7,
                 'error_note': "Internal error"
@@ -722,7 +785,9 @@ class ClickWebhook(View):
                 raise PermissionDenied("Missing signature parameters")
 
             # Create string to sign
-            to_sign = f"{params.get('click_trans_id')}{params.get('service_id')}"
+            to_sign = (
+                f"{params.get('click_trans_id')}{params.get('service_id')}"
+            )
             to_sign += f"{self.secret_key}{params.get('merchant_trans_id')}"
             to_sign += f"{params.get('amount')}{params.get('action')}"
             to_sign += f"{sign_time}"
@@ -738,14 +803,20 @@ class ClickWebhook(View):
         Find account by merchant_trans_id.
         """
         try:
-            # Try to convert merchant_trans_id to int if it's a string and a digit
-            if isinstance(merchant_trans_id, str) and merchant_trans_id.isdigit():
+            # Convert merchant_trans_id to int if needed
+            if (isinstance(merchant_trans_id, str)
+                    and merchant_trans_id.isdigit()):
                 merchant_trans_id = int(merchant_trans_id)
 
-            account = self.account_model.objects.get(id=merchant_trans_id)
+            # Use model manager to find account
+            account = self.account_model._default_manager.get(
+                id=merchant_trans_id
+            )
             return account
         except self.account_model.DoesNotExist:
-            raise AccountNotFound(f"Account with id={merchant_trans_id} not found")
+            raise AccountNotFound(
+                f"Account with id={merchant_trans_id} not found"
+            ) from None
 
     def _validate_amount(self, received_amount, expected_amount):
         """
@@ -753,12 +824,17 @@ class ClickWebhook(View):
         """
         # Add commission if needed
         if self.commission_percent > 0:
-            expected_amount = expected_amount * (1 + self.commission_percent / 100)
+            expected_amount = expected_amount * (
+                1 + self.commission_percent / 100
+            )
             expected_amount = round(expected_amount, 2)
 
         # Allow small difference due to floating point precision
         if abs(received_amount - expected_amount) > 0.01:
-            raise InvalidAmount(f"Incorrect amount. Expected: {expected_amount}, received: {received_amount}")
+            raise InvalidAmount(
+                f"Incorrect amount. Expected: {expected_amount}, "
+                f"received: {received_amount}"
+            )
 
     # Event methods that can be overridden by subclasses
 
@@ -770,7 +846,7 @@ class ClickWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def transaction_created(self, params, transaction, account):
         """
@@ -781,7 +857,7 @@ class ClickWebhook(View):
             transaction: Transaction object
             account: Account object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def successfully_payment(self, params, transaction):
         """
@@ -791,7 +867,7 @@ class ClickWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses
 
     def cancelled_payment(self, params, transaction):
         """
@@ -801,4 +877,4 @@ class ClickWebhook(View):
             params: Request parameters
             transaction: Transaction object
         """
-        pass
+        # This method is meant to be overridden by subclasses

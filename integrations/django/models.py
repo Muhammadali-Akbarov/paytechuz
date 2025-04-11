@@ -4,6 +4,7 @@ Django models for PayTechUZ.
 from django.db import models
 from django.utils import timezone
 
+
 class PaymentTransaction(models.Model):
     """
     Payment transaction model for storing payment information.
@@ -37,6 +38,7 @@ class PaymentTransaction(models.Model):
     account_id = models.CharField(max_length=255)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
     state = models.IntegerField(choices=STATE_CHOICES, default=CREATED)
+    reason = models.IntegerField(null=True, blank=True)  # Reason for cancellation
     extra_data = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, db_index=True)
@@ -76,20 +78,31 @@ class PaymentTransaction(models.Model):
     def mark_as_cancelled(self, reason=None):
         """
         Mark the transaction as cancelled.
+
+        Args:
+            reason: Reason for cancellation (integer code)
+
+        Returns:
+            PaymentTransaction instance
         """
         if self.state not in [self.CANCELLED, self.CANCELLED_DURING_INIT]:
-            # Determine the appropriate cancelled state
-            if self.state == self.INITIATING:
-                self.state = self.CANCELLED
-            else:
-                self.state = self.CANCELLED_DURING_INIT
-
+            # Always set state to CANCELLED (-2) for Payme API compatibility
+            # regardless of the current state
+            self.state = self.CANCELLED
             self.cancelled_at = timezone.now()
 
-            # Store reason in extra_data if provided
-            if reason:
+            # Store reason directly in the reason column if provided
+            if reason is not None:
+                # Convert reason to int if it's a string
+                if isinstance(reason, str) and reason.isdigit():
+                    reason_code = int(reason)
+                else:
+                    reason_code = reason
+                self.reason = reason_code
+
+                # For backward compatibility, also store in extra_data
                 extra_data = self.extra_data or {}
-                extra_data['cancel_reason'] = reason
+                extra_data['cancel_reason'] = reason_code
                 self.extra_data = extra_data
 
             self.save()
