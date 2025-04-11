@@ -72,6 +72,64 @@ async def payme_webhook(request: Request, db: Session = Depends(get_db)):
         amount_field="amount",
         one_time_payment=False
     )
-    result = await handler.handle_webhook(request)
+    result = await handler.h    andle_webhook(request)
     return result
+```
+
+### 3. To'lov uchun link generate qilish
+
+```python
+from paytechuz.gateways.payme import PaymeGateway
+from paytechuz.gateways.click import ClickGateway
+
+@app.get("/generate-payment/{order_id}")
+async def generate_payment(order_id: int):
+    order = await db.get_order(id=order_id)  # Your database query here
+    
+    # Click orqali to'lov
+    click = ClickGateway()
+    click_link = click.generate_payment_link(
+        id=order.id,
+        amount=order.amount,
+        return_url="https://example.com/return",
+    )
+    
+    # Payme orqali to'lov
+    payme = PaymeGateway()
+    payme_link = payme.generate_payment_link(
+        id=order.id,
+        amount=order.amount,
+        return_url="https://example.com/return",
+    )
+    
+    return {
+        "click_payment_url": click_link,
+        "payme_payment_url": payme_link
+    }
+
+# Async versiyasi
+@app.get("/generate-payment-async/{order_id}")
+async def generate_payment_async(order_id: int):
+    order = await db.get_order(id=order_id)  # Your database query here
+    
+    # Click orqali to'lov
+    click = ClickGateway()
+    click_link = await click.generate_payment_link_async(
+        id=order.id,
+        amount=order.amount,
+        return_url="https://example.com/return",
+    )
+    
+    # Payme orqali to'lov
+    payme = PaymeGateway()
+    payme_link = await payme.generate_payment_link_async(
+        id=order.id,
+        amount=order.amount,
+        return_url="https://example.com/return",
+    )
+    
+    return {
+        "click_payment_url": click_link,
+        "payme_payment_url": payme_link
+    }
 ```

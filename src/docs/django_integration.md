@@ -132,3 +132,28 @@ class ClickWebhookView(BaseClickWebhookView):
         # Qo'shimcha logika
         # self.notify_admin_about_cancelled_payment(order)
 ```
+
+
+### 5. To'lov uchun link generate qilish
+from paytechuz.gateways.payme import PaymeGateway
+
+from paytechuz.gateways.click import ClickGateway
+
+```python
+
+order = Order.objects.get(id=1)
+
+click = ClickGateway()
+link = click.generate_payment_link(
+    id=order.id,
+    amount=order.amount,
+    return_url="https://example.com/return",
+)
+
+payme = PaymeGateway()
+link = payme.generate_payment_link(
+    id=order.id,
+    amount=order.amount,
+    return_url="https://example.com/return",
+)
+```

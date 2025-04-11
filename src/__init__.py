@@ -5,7 +5,7 @@ payment systems in Uzbekistan. It supports Django, Flask, and FastAPI.
 """
 from typing import Any
 
-__version__ = '0.1.1'
+__version__ = '0.1.4'
 
 
 # Define dummy classes to avoid import errors

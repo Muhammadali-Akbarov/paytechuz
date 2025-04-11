@@ -3,6 +3,7 @@ Payme payment gateway client.
 """
 import logging
 from typing import Dict, Any, Optional, Union
+import base64
 
 from paytechuz.core.base import BasePaymentGateway
 from paytechuz.core.http import HttpClient
@@ -12,6 +13,7 @@ from paytechuz.gateways.payme.cards import PaymeCards
 from paytechuz.gateways.payme.receipts import PaymeReceipts
 
 logger = logging.getLogger(__name__)
+
 
 class PaymeGateway(BasePaymentGateway):
     """
@@ -56,116 +58,138 @@ class PaymeGateway(BasePaymentGateway):
             payme_key=payme_key
         )
 
+    def generate_pay_link(
+        self,
+        id: Union[int, str],
+        amount: Union[int, float, str],
+        return_url: str,
+        account_field_name: str = "order_id"
+    ) -> str:
+        """
+        Generate a payment link for a specific order.
+
+        Parameters
+        ----------
+        id : Union[int, str]
+            Unique identifier for the account/order.
+        amount : Union[int, float, str]
+            Payment amount in som.
+        return_url : str
+            URL to redirect after payment completion.
+        account_field_name : str, optional
+            Field name for account identifier (default: "order_id").
+
+        Returns
+        -------
+        str
+            Payme checkout URL with encoded parameters.
+
+        References
+        ----------
+        https://developer.help.paycom.uz/initsializatsiya-platezhey/
+        """
+        # Convert amount to tiyin (1 som = 100 tiyin)
+        amount_tiyin = int(float(amount) * 100)
+
+        # Build parameters
+        params = (
+            f'm={self.payme_id};'
+            f'ac.{account_field_name}={id};'
+            f'a={amount_tiyin};'
+            f'c={return_url}'
+        )
+        encoded_params = base64.b64encode(params.encode("utf-8")).decode("utf-8")
+
+        # Return URL based on environment
+        base_url = "https://test.paycom.uz" if self.is_test_mode else "https://checkout.paycom.uz"
+        return f"{base_url}/{encoded_params}"
+
+    async def generate_pay_link_async(
+        self,
+        id: Union[int, str],
+        amount: Union[int, float, str],
+        return_url: str,
+        account_field_name: str = "order_id"
+    ) -> str:
+        """
+        Async version of generate_pay_link.
+
+        Parameters
+        ----------
+        id : Union[int, str]
+            Unique identifier for the account/order.
+        amount : Union[int, float, str]
+            Payment amount in som.
+        return_url : str
+            URL to redirect after payment completion.
+        account_field_name : str, optional
+            Field name for account identifier (default: "order_id").
+
+        Returns
+        -------
+        str
+            Payme checkout URL with encoded parameters.
+        """
+        return self.generate_pay_link(
+            id=id,
+            amount=amount,
+            return_url=return_url,
+            account_field_name=account_field_name
+        )
+
     @handle_exceptions
     def create_payment(
         self,
+        id: Union[int, str],
         amount: Union[int, float, str],
-        account_id: Union[int, str],
-        **kwargs
-    ) -> Dict[str, Any]:
+        return_url: str = "",
+        account_field_name: str = "order_id"
+    ) -> str:
         """
-        Create a payment using Payme receipts.
+        Create a payment using Payme.
 
         Args:
-            amount: The payment amount in som
-            account_id: The account ID or order ID
-            **kwargs: Additional parameters for the payment
-                - description: Payment description
-                - detail: Payment details
-                - callback_url: URL to redirect after payment
-                - return_url: URL to return after payment
-                - phone: Customer phone number
-                - email: Customer email
-                - language: Language code (uz, ru, en)
-                - expire_minutes: Payment expiration time in minutes
+            amount: Payment amount in som
+            account_id: Account or order ID
+            return_url: Return URL after payment (default: "")
+            account_field_name: Field name for account ID (default: "order_id")
 
         Returns:
-            Dict containing payment details including transaction ID and payment URL
+            str: Payme payment URL
         """
-        # Format amount to tiyin (1 som = 100 tiyin)
-        amount_tiyin = format_amount(amount)
+        return self.generate_pay_link(
+            id=id,
+            amount=amount,
+            return_url=return_url,
+            account_field_name=account_field_name
+        )
 
-        # Extract additional parameters
-        description = kwargs.get('description', f'Payment for account {account_id}')
-        detail = kwargs.get('detail', {})
-        callback_url = kwargs.get('callback_url')
-        return_url = kwargs.get('return_url')
-        phone = kwargs.get('phone')
-        email = kwargs.get('email')
-        language = kwargs.get('language', 'uz')
-        expire_minutes = kwargs.get('expire_minutes', 60)  # Default 1 hour
+    @handle_exceptions
+    async def create_payment_async(
+        self,
+        id: Union[int, str],
+        amount: Union[int, float, str],
+        return_url: str = "",
+        account_field_name: str = "order_id"
+    ) -> str:
+        """
+        Async version of create_payment.
 
-        # Check if we have a merchant key
-        if self.payme_key:
-            # Create receipt using the API
-            receipt_data = self.receipts.create(
-                amount=amount_tiyin,
-                account={"account_id": str(account_id)},
-                description=description,
-                detail=detail,
-                callback_url=callback_url,
-                return_url=return_url,
-                phone=phone,
-                email=email,
-                language=language,
-                expire_minutes=expire_minutes
-            )
+        Args:
+            amount: Payment amount in som
+            account_id: Account or order ID
+            return_url: Return URL after payment (default: "")
+            account_field_name: Field name for account ID (default: "order_id")
 
-            # Extract receipt ID and payment URL
-            receipt_id = receipt_data.get('receipt', {}).get('_id')
-            payment_url = receipt_data.get('receipt', {}).get('pay_url')
-
-            return {
-                'transaction_id': receipt_id,
-                'payment_url': payment_url,
-                'amount': amount,
-                'account_id': account_id,
-                'status': 'created',
-                'raw_response': receipt_data
-            }
-        else:
-            # Generate a payment URL using payme-pkg style
-            # This is a fallback method that doesn't require authentication
-            import base64
-            from paytechuz.core.utils import generate_id
-
-            # Generate a unique transaction ID
-            transaction_id = generate_id("payme")
-
-            # Format amount to the smallest currency unit (tiyin)
-            # amount_tiyin is already in tiyin format
-
-            # Build the payment parameters string
-            # Format: m=merchant_id;ac.field=value;a=amount;c=callback_url
-            params_str = f"m={self.payme_id};ac.id={account_id};a={amount_tiyin}"
-
-            # Add callback URL if provided (this is used for return URL in payme-pkg)
-            if return_url:
-                params_str += f";c={return_url}"
-
-            # Encode the parameters string to base64
-            encoded_params = base64.b64encode(params_str.encode("utf-8")).decode("utf-8")
-
-            # Build the payment URL
-            if self.is_test_mode:
-                payment_url = f"https://test.paycom.uz/{encoded_params}"
-            else:
-                payment_url = f"https://checkout.paycom.uz/{encoded_params}"
-
-            # Print the parameters for debugging
-            print("Payme payment parameters:")
-            print(f"Parameters string: {params_str}")
-            print(f"Encoded parameters: {encoded_params}")
-            print(f"Payment URL: {payment_url}")
-
-            return {
-                'transaction_id': transaction_id,
-                'payment_url': payment_url,
-                'amount': amount,
-                'account_id': account_id,
-                'status': 'created',
-                'raw_response': {}
-            }
+        Returns:
+            str: Payme payment URL
+        """
+        return await self.generate_pay_link_async(
+            id=id,
+            amount=amount,
+            return_url=return_url,
+            account_field_name=account_field_name
+        )
 
     @handle_exceptions
     def check_payment(self, transaction_id: str) -> Dict[str, Any]:
