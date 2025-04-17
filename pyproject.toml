@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paytechuz"
-version = "0.1.4"
+version = "0.1.6"
 description = "Unified Python package for Uzbekistan payment gateways"
 readme = "README.md"
 requires-python = ">=3.7"
@@ -13,6 +13,5 @@ license = {text = "MIT"}
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["paytechuz*", "core*", "gateways*", "integrations*"]
+[tool.setuptools.packages]
+find = {where = ["src"], include = ["paytechuz*"]}

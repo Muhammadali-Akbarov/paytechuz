@@ -26,23 +26,34 @@ pip install paytechuz[fastapi]
 ### Generate Payment Links
 
 ```python
-from paytechuz.gateways.payme import PaymeGateway
-from paytechuz.gateways.click import ClickGateway
+from paytechuz import create_gateway, PaymentGateway
 
 # Initialize gateways
-payme = PaymeGateway()
-click = ClickGateway()
+payme = create_gateway(PaymentGateway.PAYME.value,
+    payme_id="your_payme_id",
+    payme_key="your_payme_key",
+    is_test_mode=True
+)
+
+click = create_gateway(PaymentGateway.CLICK.value,
+    service_id="your_service_id",
+    merchant_id="your_merchant_id",
+    merchant_user_id="your_merchant_user_id",
+    secret_key="your_secret_key",
+    is_test_mode=True
+)
 
 # Generate payment links
-payme_link = payme.generate_payment_link(
+payme_link = payme.create_payment(
     id="order_123",
     amount=150000,  # amount in UZS
     return_url="https://example.com/return"
 )
 
-click_link = click.generate_payment_link(
-    id="order_123",
+click_link = click.create_payment(
     amount=150000,  # amount in UZS
+    account_id="order_123",
+    description="Test payment",
     return_url="https://example.com/return"
 )
 ```
@@ -84,7 +95,7 @@ class PaymeWebhookView(PaymeWebhookView):
         order = Order.objects.get(id=transaction.account_id)
         order.status = 'paid'
         order.save()
-        
+
     def cancelled_payment(self, params, transaction):
         order = Order.objects.get(id=transaction.account_id)
         order.status = 'cancelled'

@@ -1,14 +1,14 @@
 """Setup script for PayTechUZ package."""
 
 import pathlib
-from setuptools import setup, find_namespace_packages
+from setuptools import setup, find_packages
 
 here = pathlib.Path(__file__).parent.resolve()
 long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='paytechuz',
-    version='0.1.4',
+    version='0.1.6',
     license='MIT',
     author="Muhammadali Akbarov",
     author_email='muhammadali17abc@gmail.com',
@@ -17,10 +17,8 @@ setup(
     long_description_content_type="text/markdown",
     url='https://github.com/Muhammadali-Akbarov/paytechuz',
 
-    packages=find_namespace_packages(include=['paytechuz*']),
-    package_dir={
-        'paytechuz': 'src',
-    },
+    packages=find_packages(where='src'),
+    package_dir={'': 'src'},
     include_package_data=True,
     package_data={
         '': ['*.py'],
