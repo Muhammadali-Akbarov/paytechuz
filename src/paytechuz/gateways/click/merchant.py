@@ -70,7 +70,7 @@ class ClickMerchantApi:
         return hashlib.md5(sign_string.encode('utf-8')).hexdigest()
 
     @handle_exceptions
-    def check_payment(self, account_id: Union[int, str]) -> Dict[str, Any]:
+    def check_payment(self, id: Union[int, str]) -> Dict[str, Any]:
         """
         Check payment status.
 
@@ -83,7 +83,7 @@ class ClickMerchantApi:
         # Prepare request data
         data = {
             "service_id": self.service_id,
-            "merchant_transaction_id": str(account_id),
+            "merchant_transaction_id": str(id),
             "request_id": str(generate_timestamp())
         }
 
@@ -102,14 +102,14 @@ class ClickMerchantApi:
     @handle_exceptions
     def cancel_payment(
         self,
-        account_id: Union[int, str],
+        id: Union[int, str],
         reason: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Cancel payment.
 
         Args:
-            account_id: Account ID or order ID
+            id: Account ID or order ID
             reason: Optional reason for cancellation
 
         Returns:
@@ -118,7 +118,7 @@ class ClickMerchantApi:
         # Prepare request data
         data = {
             "service_id": self.service_id,
-            "merchant_transaction_id": str(account_id),
+            "merchant_transaction_id": str(id),
             "request_id": str(generate_timestamp())
         }
 
@@ -141,8 +141,8 @@ class ClickMerchantApi:
     @handle_exceptions
     def create_invoice(
         self,
+        id: Union[int, str],
         amount: Union[int, float],
-        account_id: Union[int, str],
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -161,7 +161,7 @@ class ClickMerchantApi:
             Dict containing invoice details
         """
         # Extract additional parameters
-        description = kwargs.get('description', f'Payment for account {account_id}')
+        description = kwargs.get('description', f'Payment for account {id}')
         phone = kwargs.get('phone')
         email = kwargs.get('email')
         expire_time = kwargs.get('expire_time', 60)  # Default 1 hour
@@ -170,7 +170,7 @@ class ClickMerchantApi:
         data = {
             "service_id": self.service_id,
             "amount": float(amount),
-            "merchant_transaction_id": str(account_id),
+            "merchant_transaction_id": str(id),
             "description": description,
             "request_id": str(generate_timestamp()),
             "expire_time": expire_time

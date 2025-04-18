@@ -26,16 +26,16 @@ class BasePaymentGateway(ABC):
     @abstractmethod
     def create_payment(
         self,
+        id: Union[int, str],
         amount: Union[int, float, str],
-        account_id: Union[int, str],
         **kwargs
     ) -> Dict[str, Any]:
         """
         Create a payment.
 
         Args:
+            id: The account ID or order ID
             amount: The payment amount
-            account_id: The account ID or order ID
             **kwargs: Additional parameters specific to the payment gateway
 
         Returns:

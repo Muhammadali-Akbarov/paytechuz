@@ -62,8 +62,8 @@ class ClickGateway(BasePaymentGateway):
     @handle_exceptions
     def create_payment(
         self,
+        id: Union[int, str],
         amount: Union[int, float, str],
-        account_id: Union[int, str],
         **kwargs
     ) -> Dict[str, Any]:
         """
@@ -71,7 +71,7 @@ class ClickGateway(BasePaymentGateway):
 
         Args:
             amount: The payment amount in som
-            account_id: The account ID or order ID
+            id: The account ID or order ID
             **kwargs: Additional parameters for the payment
                 - description: Payment description
                 - return_url: URL to return after payment
@@ -87,7 +87,7 @@ class ClickGateway(BasePaymentGateway):
         amount_tiyin = format_amount(amount)
 
         # Extract additional parameters
-        description = kwargs.get('description', f'Payment for account {account_id}') # noqa
+        description = kwargs.get('description', f'Payment for account {id}') # noqa
         return_url = kwargs.get('return_url')
         callback_url = kwargs.get('callback_url')
         # These parameters are not used in the URL but are available in the API
@@ -100,7 +100,7 @@ class ClickGateway(BasePaymentGateway):
         payment_url += f"?service_id={self.service_id}"
         payment_url += f"&merchant_id={self.merchant_id}"
         payment_url += f"&amount={amount}"
-        payment_url += f"&transaction_param={account_id}"
+        payment_url += f"&transaction_param={id}"
 
         if return_url:
             payment_url += f"&return_url={return_url}"
@@ -112,13 +112,13 @@ class ClickGateway(BasePaymentGateway):
             payment_url += f"&merchant_user_id={description}"
 
         # Generate a unique transaction ID
-        transaction_id = f"click_{account_id}_{int(amount_tiyin)}"
+        transaction_id = f"click_{id}_{int(amount_tiyin)}"
 
         return {
             'transaction_id': transaction_id,
             'payment_url': payment_url,
             'amount': amount,
-            'account_id': account_id,
+            'account_id': id,
             'status': 'created',
             'service_id': self.service_id,
             'merchant_id': self.merchant_id
