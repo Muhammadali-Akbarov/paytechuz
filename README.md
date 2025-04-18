@@ -102,6 +102,19 @@ class PaymeWebhookView(BasePaymeWebhookView):
         order.save()
 ```
 
+3. Add webhook URLs to `urls.py`:
+
+```python
+# urls.py
+from django.urls import path
+from .views import PaymeWebhookView
+
+urlpatterns = [
+    # ...
+    path('payments/webhook/payme/', PaymeWebhookView.as_view(), name='payme_webhook'),
+]
+```
+
 ### FastAPI Integration
 
 1. Create webhook handler:
