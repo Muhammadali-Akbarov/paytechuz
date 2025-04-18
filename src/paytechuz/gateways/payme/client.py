@@ -5,10 +5,11 @@ import logging
 from typing import Dict, Any, Optional, Union
 import base64
 
-from ....core.base import BasePaymentGateway
-from ....core.http import HttpClient
-from ....core.constants import PaymeNetworks
-from ....core.utils import format_amount, handle_exceptions
+from paytechuz.core.base import BasePaymentGateway
+from paytechuz.core.http import HttpClient
+from paytechuz.core.constants import PaymeNetworks
+from paytechuz.core.utils import format_amount, handle_exceptions
+
 from .cards import PaymeCards
 from .receipts import PaymeReceipts
 

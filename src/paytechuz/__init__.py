@@ -6,7 +6,7 @@ payment systems in Uzbekistan. It supports Django, Flask, and FastAPI.
 """
 from typing import Any
 
-__version__ = '0.2.0-beta'
+__version__ = '0.2.2'
 
 # Import framework integrations - these imports are used to check availability
 # of frameworks, not for direct usage
@@ -28,46 +28,13 @@ try:
 except ImportError:
     HAS_FLASK = False
 
-
-# Import the main classes for easier access
-try:
-    from paytechuz.gateways.payme.client import PaymeGateway  # noqa: E402
-    from paytechuz.gateways.click.client import ClickGateway  # noqa: E402
-    from paytechuz.core.constants import PaymentGateway  # noqa: E402
-except ImportError:
-    # Fallback for development mode
-    try:
-        from .gateways.payme.client import PaymeGateway  # noqa: E402
-        from .gateways.click.client import ClickGateway  # noqa: E402
-        from .core.constants import PaymentGateway  # noqa: E402
-    except ImportError:
-        # Dummy classes to avoid import errors
-        class PaymeGateway:
-            """Dummy PaymeGateway class to avoid import errors."""
-            def __init__(self, **kwargs):
-                pass
-
-            def create_payment(self, **kwargs):
-                return "https://test.paycom.uz/dummy-payment-url"
-
-        class ClickGateway:
-            """Dummy ClickGateway class to avoid import errors."""
-            def __init__(self, **kwargs):
-                pass
-
-            def create_payment(self, **kwargs):
-                return {"payment_url": "https://my.click.uz/dummy-payment-url"}
-
-        class PaymentGateway:
-            """Dummy PaymentGateway enum to avoid import errors."""
-            class PAYME:
-                value = 'payme'
-
-            class CLICK:
-                value = 'click'
+from paytechuz.core.base import BasePaymentGateway  # noqa: E402
+from paytechuz.gateways.payme.client import PaymeGateway  # noqa: E402
+from paytechuz.gateways.click.client import ClickGateway  # noqa: E402
+from paytechuz.core.constants import PaymentGateway  # noqa: E402
 
 
-def create_gateway(gateway_type: str, **kwargs) -> Any:
+def create_gateway(gateway_type: str, **kwargs) -> BasePaymentGateway:
     """
     Create a payment gateway instance.
 

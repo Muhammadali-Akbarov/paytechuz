@@ -4,10 +4,10 @@ Click payment gateway client.
 import logging
 from typing import Dict, Any, Optional, Union
 
-from ....core.base import BasePaymentGateway
-from ....core.http import HttpClient
-from ....core.constants import ClickNetworks
-from ....core.utils import format_amount, handle_exceptions
+from paytechuz.core.base import BasePaymentGateway
+from paytechuz.core.http import HttpClient
+from paytechuz.core.constants import ClickNetworks
+from paytechuz.core.utils import format_amount, handle_exceptions
 from .merchant import ClickMerchantApi
 
 logger = logging.getLogger(__name__)

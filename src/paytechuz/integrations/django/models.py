@@ -54,10 +54,6 @@ class PaymentTransaction(models.Model):
         ordering = ["-created_at"]
         db_table = "payments"
         unique_together = [['gateway', 'transaction_id']]
-        indexes = [
-            models.Index(fields=['account_id']),
-            models.Index(fields=['state']),
-        ]
 
     def __str__(self):
         """

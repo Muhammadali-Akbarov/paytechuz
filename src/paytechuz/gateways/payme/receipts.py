@@ -5,11 +5,12 @@ Payme receipts operations.
 import logging
 from typing import Dict, Any, Optional
 
-from ....core.http import HttpClient
-from ....core.constants import PaymeEndpoints
-from ....core.utils import handle_exceptions, generate_basic_auth
+from paytechuz.core.http import HttpClient
+from paytechuz.core.constants import PaymeEndpoints
+from paytechuz.core.utils import handle_exceptions, generate_basic_auth
 
 logger = logging.getLogger(__name__)
+
 
 class PaymeReceipts:
     """

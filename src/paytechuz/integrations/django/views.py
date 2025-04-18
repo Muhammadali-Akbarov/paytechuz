@@ -10,7 +10,7 @@ from .webhooks import PaymeWebhook, ClickWebhook
 logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name='dispatch')
-class PaymeWebhookView(PaymeWebhook):
+class BasePaymeWebhookView(PaymeWebhook):
     """
     Default Payme webhook view.
 
@@ -55,7 +55,7 @@ class PaymeWebhookView(PaymeWebhook):
         logger.info(f"Payme payment cancelled: {transaction.transaction_id}")
 
 @method_decorator(csrf_exempt, name='dispatch')
-class ClickWebhookView(ClickWebhook):
+class BaseClickWebhookView(ClickWebhook):
     """
     Default Click webhook view.
 

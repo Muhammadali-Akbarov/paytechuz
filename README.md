@@ -87,10 +87,10 @@ CLICK_COMMISSION_PERCENT = 0.0
 
 ```python
 # views.py
-from paytechuz.integrations.django.views import PaymeWebhookView
+from paytechuz.integrations.django.views import BasePaymeWebhookView
 from .models import Order
 
-class PaymeWebhookView(PaymeWebhookView):
+class PaymeWebhookView(BasePaymeWebhookView):
     def successfully_payment(self, params, transaction):
         order = Order.objects.get(id=transaction.account_id)
         order.status = 'paid'

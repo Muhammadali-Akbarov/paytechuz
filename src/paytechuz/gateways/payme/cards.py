@@ -4,11 +4,12 @@ Payme cards operations.
 import logging
 from typing import Dict, Any
 
-from ....core.http import HttpClient
-from ....core.constants import PaymeEndpoints
-from ....core.utils import handle_exceptions
+from paytechuz.core.http import HttpClient
+from paytechuz.core.constants import PaymeEndpoints
+from paytechuz.core.utils import handle_exceptions
 
 logger = logging.getLogger(__name__)
+
 
 class PaymeCards:
     """

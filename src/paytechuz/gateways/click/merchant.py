@@ -5,11 +5,12 @@ import hashlib
 import logging
 from typing import Dict, Any, Optional, Union
 
-from ....core.http import HttpClient
-from ....core.constants import ClickEndpoints
-from ....core.utils import handle_exceptions, generate_timestamp
+from paytechuz.core.http import HttpClient
+from paytechuz.core.constants import ClickEndpoints
+from paytechuz.core.utils import handle_exceptions, generate_timestamp
 
 logger = logging.getLogger(__name__)
+
 
 class ClickMerchantApi:
     """
