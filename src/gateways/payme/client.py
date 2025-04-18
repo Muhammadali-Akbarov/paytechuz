@@ -149,8 +149,8 @@ class PaymeGateway(BasePaymentGateway):
         Create a payment using Payme.
 
         Args:
+            id: Account or order ID
             amount: Payment amount in som
-            account_id: Account or order ID
             return_url: Return URL after payment (default: "")
             account_field_name: Field name for account ID (default: "order_id")
 

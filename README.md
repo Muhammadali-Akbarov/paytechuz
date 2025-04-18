@@ -51,8 +51,8 @@ payme_link = payme.create_payment(
 )
 
 click_link = click.create_payment(
+    id="order_123",
     amount=150000,  # amount in UZS
-    account_id="order_123",
     description="Test payment",
     return_url="https://example.com/return"
 )
