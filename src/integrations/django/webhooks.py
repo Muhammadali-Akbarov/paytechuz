@@ -432,6 +432,10 @@ class PaymeWebhook(View):
             # If transaction is already cancelled, return the existing data
             return self._cancel_response(transaction)
 
+        if reason == 3:
+            transaction.state = PaymentTransaction.CANCELLED_DURING_INIT
+            transaction.save()
+
         # Use the mark_as_cancelled method to properly store the reason
         transaction.mark_as_cancelled(reason=reason)
 

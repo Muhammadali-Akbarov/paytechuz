@@ -32,6 +32,7 @@ try:
 except ImportError:
     HAS_FLASK = False
 
+
 def create_gateway(gateway_type: str, **kwargs) -> Any:
     """
     Create a payment gateway instance.
