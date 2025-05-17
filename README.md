@@ -170,12 +170,15 @@ urlpatterns = [
 1. Set up database models:
 
 ```python
-from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
-from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime, timezone
+
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
+
 from paytechuz.integrations.fastapi import Base as PaymentsBase
 from paytechuz.integrations.fastapi.models import run_migrations
-from datetime import datetime, timezone
+
 
 # Create database engine
 SQLALCHEMY_DATABASE_URL = "sqlite:///./payments.db"
@@ -208,8 +211,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 ```python
 from fastapi import FastAPI, Request, Depends
+
 from sqlalchemy.orm import Session
+
 from paytechuz.integrations.fastapi import PaymeWebhookHandler, ClickWebhookHandler
+
 
 app = FastAPI()
 
