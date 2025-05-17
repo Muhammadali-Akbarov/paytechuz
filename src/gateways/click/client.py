@@ -7,7 +7,7 @@ from typing import Dict, Any, Optional, Union
 from paytechuz.core.base import BasePaymentGateway
 from paytechuz.core.http import HttpClient
 from paytechuz.core.constants import ClickNetworks
-from paytechuz.core.utils import format_amount, handle_exceptions
+from paytechuz.core.utils import handle_exceptions
 from paytechuz.gateways.click.merchant import ClickMerchantApi
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class ClickGateway(BasePaymentGateway):
         id: Union[int, str],
         amount: Union[int, float, str],
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> str:
         """
         Create a payment using Click.
 
@@ -81,13 +81,12 @@ class ClickGateway(BasePaymentGateway):
                 - email: Customer email
 
         Returns:
-            Dict containing payment details including transaction ID and payment URL
+            Payment URL string for redirecting the user to Click payment page
         """
-        # Format amount to tiyin (1 som = 100 tiyin)
-        amount_tiyin = format_amount(amount)
+        # Format amount for URL (no need to convert to tiyin for URL)
 
         # Extract additional parameters
-        description = kwargs.get('description', f'Payment for account {account_id}')
+        description = kwargs.get('description', f'Payment for account {id}')
         return_url = kwargs.get('return_url')
         callback_url = kwargs.get('callback_url')
         # These parameters are not used in the URL but are available in the API
@@ -111,18 +110,8 @@ class ClickGateway(BasePaymentGateway):
         if description:
             payment_url += f"&merchant_user_id={description}"
 
-        # Generate a unique transaction ID
-        transaction_id = f"click_{id}_{int(amount_tiyin)}"
-
-        return {
-            'transaction_id': transaction_id,
-            'payment_url': payment_url,
-            'amount': amount,
-            'account_id': id,
-            'status': 'created',
-            'service_id': self.service_id,
-            'merchant_id': self.merchant_id
-        }
+        # Return the payment URL directly
+        return payment_url
 
     @handle_exceptions
     def check_payment(self, transaction_id: str) -> Dict[str, Any]:
@@ -139,7 +128,9 @@ class ClickGateway(BasePaymentGateway):
         # Format: click_account_id_amount
         parts = transaction_id.split('_')
         if len(parts) < 3 or parts[0] != 'click':
-            raise ValueError(f"Invalid transaction ID format: {transaction_id}")
+            raise ValueError(
+                f"Invalid transaction ID format: {transaction_id}"
+            )
 
         account_id = parts[1]
 
@@ -188,7 +179,9 @@ class ClickGateway(BasePaymentGateway):
         # Format: click_account_id_amount
         parts = transaction_id.split('_')
         if len(parts) < 3 or parts[0] != 'click':
-            raise ValueError(f"Invalid transaction ID format: {transaction_id}")
+            raise ValueError(
+                f"Invalid transaction ID format: {transaction_id}"
+            )
 
         account_id = parts[1]
 

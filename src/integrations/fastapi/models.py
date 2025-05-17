@@ -1,13 +1,14 @@
 """
 FastAPI models for PayTechUZ.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 
 from sqlalchemy import Column, Integer, String, Float, DateTime, JSON
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
+
 
 class PaymentTransaction(Base):
     """
@@ -34,8 +35,15 @@ class PaymentTransaction(Base):
     state = Column(Integer, default=CREATED, index=True)
     reason = Column(Integer, nullable=True)  # Reason for cancellation
     extra_data = Column(JSON, default={})
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), index=True
+    )
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        index=True
+    )
     performed_at = Column(DateTime, nullable=True, index=True)
     cancelled_at = Column(DateTime, nullable=True, index=True)
 
@@ -43,26 +51,26 @@ class PaymentTransaction(Base):
     def create_transaction(
         cls,
         db,
-        gateway: str,
-        transaction_id: str,
-        account_id: str,
-        amount: float,
-        extra_data: Optional[Dict[str, Any]] = None
+        transaction_data: Dict[str, Any]
     ) -> "PaymentTransaction":
         """
         Create a new transaction or get an existing one.
 
         Args:
             db: Database session
-            gateway: Payment gateway (payme or click)
-            transaction_id: Transaction ID from the payment system
-            account_id: Account or order ID
-            amount: Payment amount
-            extra_data: Additional data for the transaction
+            transaction_data: Dictionary containing transaction data with keys:
+                - gateway: Payment gateway (payme or click)
+                - transaction_id: Transaction ID from the payment system
+                - account_id: Account or order ID
+                - amount: Payment amount
+                - extra_data: Additional data for the transaction (optional)
 
         Returns:
             PaymentTransaction instance
         """
+        gateway = transaction_data.get('gateway')
+        transaction_id = transaction_data.get('transaction_id')
+
         # Check if transaction already exists
         transaction = db.query(cls).filter(
             cls.gateway == gateway,
@@ -76,10 +84,10 @@ class PaymentTransaction(Base):
         transaction = cls(
             gateway=gateway,
             transaction_id=transaction_id,
-            account_id=str(account_id),
-            amount=amount,
+            account_id=str(transaction_data.get('account_id')),
+            amount=transaction_data.get('amount'),
             state=cls.CREATED,
-            extra_data=extra_data or {}
+            extra_data=transaction_data.get('extra_data', {})
         )
 
         db.add(transaction)
@@ -100,14 +108,16 @@ class PaymentTransaction(Base):
         """
         if self.state != self.SUCCESSFULLY:
             self.state = self.SUCCESSFULLY
-            self.performed_at = datetime.utcnow()
+            self.performed_at = datetime.now(timezone.utc)
 
             db.commit()
             db.refresh(self)
 
         return self
 
-    def mark_as_cancelled(self, db, reason: Optional[str] = None) -> "PaymentTransaction":
+    def mark_as_cancelled(
+        self, db, reason: Optional[str] = None
+    ) -> "PaymentTransaction":
         """
         Mark the transaction as cancelled.
 
@@ -118,11 +128,10 @@ class PaymentTransaction(Base):
         Returns:
             PaymentTransaction instance
         """
-        # If reason is not provided, use default reason from PaymeCancelReason
+        # If reason is not provided, use default reason (5)
         if reason is None:
-            # Import here to avoid circular imports
-            from paytechuz.core.constants import PaymeCancelReason
-            reason_code = PaymeCancelReason.REASON_FUND_RETURNED  # Default reason 5
+            # Default reason 5 (fund returned)
+            reason_code = 5
         else:
             # Convert reason to int if it's a string
             if isinstance(reason, str) and reason.isdigit():
@@ -135,7 +144,7 @@ class PaymentTransaction(Base):
             # Always set state to CANCELLED (-2) for Payme API compatibility
             # regardless of the current state
             self.state = self.CANCELLED
-            self.cancelled_at = datetime.utcnow()
+            self.cancelled_at = datetime.now(timezone.utc)
 
         # Store the reason directly in the reason column
         self.reason = reason_code
@@ -149,3 +158,26 @@ class PaymentTransaction(Base):
         db.refresh(self)
 
         return self
+
+
+def run_migrations(engine: Any) -> None:
+    """
+    Run database migrations for PayTechUZ FastAPI integration.
+
+    This function creates all necessary tables in the database for the
+    PayTechUZ payment system. Call this function when setting up your FastAPI
+    application to ensure all required database tables are created.
+
+    Example:
+        ```python
+        from sqlalchemy import create_engine
+        from paytechuz.integrations.fastapi.models import run_migrations
+
+        engine = create_engine("sqlite:///./payments.db")
+        run_migrations(engine)
+        ```
+
+    Args:
+        engine: SQLAlchemy engine instance
+    """
+    Base.metadata.create_all(bind=engine)

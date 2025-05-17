@@ -1,158 +1,198 @@
 # PayTechUZ FastAPI Integration
 
-## Overview
-
-PayTechUZ is a unified payment library for integration with popular payment systems in Uzbekistan (Payme and Click). This document demonstrates how to integrate the Payme payment system with FastAPI.
-
 ## Installation
+
+1. Install the library:
 
 ```bash
 pip install paytechuz[fastapi]
 ```
 
-### 1. Create a Custom Webhook Handler
-
-Create a custom webhook handler by extending the `PaymeWebhookHandler` class:
+2. Set up database models in your FastAPI application:
 
 ```python
-from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
-from typing import Dict, Any
+from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from paytechuz.integrations.fastapi import Base as PaymentsBase
+from paytechuz.integrations.fastapi.models import run_migrations
+from datetime import datetime, timezone
 
-from app.database.db import get_db
-from app.models.models import Order
-from paytechuz.integrations.fastapi import PaymeWebhookHandler
+# Create database engine
+SQLALCHEMY_DATABASE_URL = "sqlite:///./payments.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-# Payme configuration
-PAYME_ID = 'your_payme_id'
-PAYME_KEY = 'your_payme_key'
+# Create base declarative class
+Base = declarative_base()
 
-class CustomPaymeWebhookHandler(PaymeWebhookHandler):
-    """
-    Custom Payme webhook handler.
-    """
-    def successfully_payment(self, params: Dict[str, Any], transaction) -> None:
-        """
-        Called when payment is successful.
-        """
-        # Update order status
-        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
-        if order:
-            order.status = "paid"
-            self.db.commit()
+# Create Order model
+class Order(Base):
+    __tablename__ = "orders"
 
-    def cancelled_payment(self, params: Dict[str, Any], transaction) -> None:
-        """
-        Called when payment is cancelled.
-        """
-        # Update order status
-        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
-        if order:
-            order.status = "cancelled"
-            self.db.commit()
+    id = Column(Integer, primary_key=True, index=True)
+    product_name = Column(String, index=True)
+    amount = Column(Float)
+    status = Column(String, default="pending")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    def __repr__(self):
+        return f"<Order {self.id}: {self.product_name} - {self.amount}>"
+
+# Create payment tables using the run_migrations helper function
+run_migrations(engine)
+
+# Create Order table
+Base.metadata.create_all(bind=engine)
+
+# Create session
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 ```
 
-### 2. Create a Webhook Endpoint
+## Configure Routes
 
-Create an endpoint to handle Payme webhook requests:
+Add the webhook handlers to your FastAPI application:
 
 ```python
-router = APIRouter()
+# main.py
+from fastapi import FastAPI, Depends, Request
+from sqlalchemy.orm import Session
+from paytechuz.integrations.fastapi import PaymeWebhookHandler, ClickWebhookHandler
 
-@router.post("/payments/payme/webhook")
+from .database import SessionLocal
+from .models import Order  # Import the Order model created above
+
+app = FastAPI()
+
+# Dependency to get the database session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Create custom webhook handlers
+class CustomPaymeWebhookHandler(PaymeWebhookHandler):
+    def successfully_payment(self, params, transaction):
+        """Called when payment is successful"""
+        order_id = transaction.account_id
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        order.status = 'paid'
+        self.db.commit()
+
+    def cancelled_payment(self, params, transaction):
+        """Called when payment is cancelled"""
+        order_id = transaction.account_id
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        order.status = 'cancelled'
+        self.db.commit()
+
+class CustomClickWebhookHandler(ClickWebhookHandler):
+    def successfully_payment(self, params, transaction):
+        """Called when payment is successful"""
+        order_id = transaction.account_id
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        order.status = 'paid'
+        self.db.commit()
+
+    def cancelled_payment(self, params, transaction):
+        """Called when payment is cancelled"""
+        order_id = transaction.account_id
+        order = self.db.query(Order).filter(Order.id == order_id).first()
+        order.status = 'cancelled'
+        self.db.commit()
+
+# Register webhook endpoints
+@app.post("/payments/payme/")
 async def payme_webhook(request: Request, db: Session = Depends(get_db)):
-    """
-    Handle Payme webhook requests.
-    """
     handler = CustomPaymeWebhookHandler(
         db=db,
-        payme_id=PAYME_ID,
-        payme_key=PAYME_KEY,
+        payme_id='your_payme_merchant_id',
+        payme_key='your_payme_merchant_key',
         account_model=Order,
-        account_field="id",
-        amount_field="amount",
-        one_time_payment=False
+        account_field='id',
+        amount_field='amount',
+        one_time_payment=True
     )
-    result = await handler.handle_webhook(request)
-    return result
+    return await handler.handle_webhook(request)
+
+@app.post("/payments/click/")
+async def click_webhook(request: Request, db: Session = Depends(get_db)):
+    handler = CustomClickWebhookHandler(
+        db=db,
+        service_id='your_click_service_id',
+        merchant_id='your_click_merchant_id',
+        secret_key='your_click_secret_key',
+        account_model=Order
+    )
+    return await handler.handle_webhook(request)
 ```
 
-## Webhook Handler Methods
+## Create Payment Links
 
-The `PaymeWebhookHandler` class provides several methods that you can override to customize the behavior:
+```python
+from paytechuz.gateways.payme import PaymeGateway
+from paytechuz.gateways.click import ClickGateway
 
-### `successfully_payment(params, transaction)`
+# Get the order
+order = db.query(Order).filter(Order.id == 1).first()
 
-Called when a payment is successfully completed. Use this method to update your order status or perform other actions.
+# Generate Payme payment link
+payme = PaymeGateway(
+    payme_id='your_payme_id',
+    payme_key='your_payme_key',
+    is_test_mode=True  # Set to False in production environment
+)
+payme_link = payme.create_payment(
+    id=order.id,
+    amount=order.amount,
+    return_url="https://example.com/return"
+)
 
-### `cancelled_payment(params, transaction)`
+# Generate Click payment link
+click = ClickGateway(
+    service_id='your_service_id',
+    merchant_id='your_merchant_id',
+    merchant_user_id='your_merchant_user_id',
+    secret_key='your_secret_key',
+    is_test_mode=True  # Set to False in production environment
+)
+click_link = click.create_payment(
+    id=order.id,
+    amount=order.amount,
+    return_url="https://example.com/return"
+)
+```
 
-Called when a payment is cancelled. Use this method to update your order status or perform other actions.
+## Handle Payment Events
 
-### Other Available Methods
+The webhook handlers provide several methods that you can override to customize the behavior:
 
-- `transaction_created(params, transaction, account)`: Called when a transaction is created
-- `transaction_already_exists(params, transaction)`: Called when a transaction already exists
-- `check_transaction(params, transaction)`: Called when checking a transaction
-- `before_check_perform_transaction(params, account)`: Called before checking if a transaction can be performed
+```python
+class CustomPaymeWebhookHandler(PaymeWebhookHandler):
+    def transaction_created(self, params, transaction, account):
+        """Called when a transaction is created"""
+        print(f"Transaction created: {transaction.transaction_id}")
 
-## Supported Payme API Methods
+    def transaction_already_exists(self, params, transaction):
+        """Called when a transaction already exists"""
+        print(f"Transaction already exists: {transaction.transaction_id}")
 
-The webhook handler supports the following Payme API methods:
+    def successfully_payment(self, params, transaction):
+        """Called when payment is successful"""
+        print(f"Payment successful: {transaction.transaction_id}")
+        # Update your order status
+        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
+        order.status = 'paid'
+        self.db.commit()
 
-1. `CheckPerformTransaction`: Checks if a transaction can be performed
-2. `CreateTransaction`: Creates a new transaction
-3. `PerformTransaction`: Performs a transaction (marks it as paid)
-4. `CheckTransaction`: Checks the status of a transaction
-5. `CancelTransaction`: Cancels a transaction
-6. `GetStatement`: Gets a list of transactions
+    def cancelled_payment(self, params, transaction):
+        """Called when payment is cancelled"""
+        print(f"Payment cancelled: {transaction.transaction_id}")
+        # Update your order status
+        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
+        order.status = 'cancelled'
+        self.db.commit()
+```
 
-## Transaction States
-
-The `PaymentTransaction` model has the following states:
-
-- `CREATED = 0`: Transaction is created
-- `INITIATING = 1`: Transaction is being initiated
-- `SUCCESSFULLY = 2`: Transaction is successfully completed
-- `CANCELLED = -2`: Transaction is cancelled after being successfully performed
-- `CANCELLED_DURING_INIT = -1`: Transaction is cancelled during initiation
-
-## Cancellation Reasons
-
-When a transaction is cancelled, a reason code is stored in the `reason` field of the transaction. This reason code is provided by the Payme API and can be used to determine why the transaction was cancelled.
-
-## Database Integration
-
-PayTechUZ automatically creates and manages the necessary database tables for storing payment transactions. The `PaymentTransaction` model includes the following fields:
-
-- `id`: Primary key
-- `gateway`: Payment gateway (payme or click)
-- `transaction_id`: Transaction ID from the payment system
-- `account_id`: Account or order ID
-- `amount`: Payment amount
-- `state`: Transaction state
-- `reason`: Reason for cancellation (if applicable)
-- `extra_data`: Additional data for the transaction
-- `created_at`: Creation timestamp
-- `updated_at`: Last update timestamp
-- `performed_at`: Payment timestamp
-- `cancelled_at`: Cancellation timestamp
-
-## Error Handling
-
-The webhook handler automatically handles errors and returns appropriate responses according to the Payme API specification. All errors are returned with a 200 status code, as required by the Payme API.
-
-## Security
-
-The webhook handler verifies the authentication credentials provided by Payme in the request headers. Make sure to keep your `payme_key` secure and never expose it in client-side code.
-
-## Best Practices
-
-1. Always override the `successfully_payment` and `cancelled_payment` methods to update your order status
-2. Use the `one_time_payment` parameter to control whether multiple payments are allowed for the same account
-3. Store additional data in the `extra_data` field if needed
-4. Use the `reason` field to determine why a transaction was cancelled
-
-## Example Implementation
-
-See the example implementation in the code snippet above for a complete working example.
+The same methods are available for the `ClickWebhookHandler` class.

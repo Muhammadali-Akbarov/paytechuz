@@ -4,14 +4,19 @@ FastAPI schemas for PayTechUZ.
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+
 
 class PaymentTransactionBase(BaseModel):
     """
     Base schema for payment transaction.
     """
-    gateway: str = Field(..., description="Payment gateway (payme or click)")
-    transaction_id: str = Field(..., description="Transaction ID from the payment system")
+    gateway: str = Field(
+        ..., description="Payment gateway (payme or click)"
+    )
+    transaction_id: str = Field(
+        ..., description="Transaction ID from the payment system"
+    )
     account_id: str = Field(..., description="Account or order ID")
     amount: float = Field(..., description="Payment amount")
     state: int = Field(0, description="Transaction state")
@@ -21,32 +26,40 @@ class PaymentTransactionCreate(PaymentTransactionBase):
     """
     Schema for creating a payment transaction.
     """
-    extra_data: Optional[Dict[str, Any]] = Field(None, description="Additional data for the transaction")
+    extra_data: Optional[Dict[str, Any]] = Field(
+        None, description="Additional data for the transaction"
+    )
+
 
 class PaymentTransaction(PaymentTransactionBase):
     """
     Schema for payment transaction.
     """
     id: int = Field(..., description="Transaction ID")
-    extra_data: Dict[str, Any] = Field({}, description="Additional data for the transaction")
+    extra_data: Dict[str, Any] = Field(
+        {}, description="Additional data for the transaction"
+    )
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")
-    performed_at: Optional[datetime] = Field(None, description="Payment timestamp")
-    cancelled_at: Optional[datetime] = Field(None, description="Cancellation timestamp")
+    performed_at: Optional[datetime] = Field(
+        None, description="Payment timestamp"
+    )
+    cancelled_at: Optional[datetime] = Field(
+        None, description="Cancellation timestamp"
+    )
 
-    class Config:
-        """
-        Pydantic configuration.
-        """
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PaymentTransactionList(BaseModel):
     """
     Schema for a list of payment transactions.
     """
-    transactions: List[PaymentTransaction] = Field(..., description="List of transactions")
+    transactions: List[PaymentTransaction] = Field(
+        ..., description="List of transactions"
+    )
     total: int = Field(..., description="Total number of transactions")
+
 
 class PaymeWebhookRequest(BaseModel):
     """
@@ -64,6 +77,7 @@ class PaymeWebhookResponse(BaseModel):
     jsonrpc: str = Field("2.0", description="JSON-RPC version")
     id: int = Field(..., description="Request ID")
     result: Dict[str, Any] = Field(..., description="Response result")
+
 
 class PaymeWebhookErrorResponse(BaseModel):
     """
@@ -88,12 +102,15 @@ class ClickWebhookRequest(BaseModel):
     error: Optional[str] = Field(None, description="Error code")
     error_note: Optional[str] = Field(None, description="Error note")
 
+
 class ClickWebhookResponse(BaseModel):
     """
     Schema for Click webhook response.
     """
     click_trans_id: str = Field(..., description="Click transaction ID")
     merchant_trans_id: str = Field(..., description="Merchant transaction ID")
-    merchant_prepare_id: Optional[int] = Field(None, description="Merchant prepare ID")
+    merchant_prepare_id: Optional[int] = Field(
+        None, description="Merchant prepare ID"
+    )
     error: int = Field(0, description="Error code")
     error_note: str = Field("Success", description="Error note")
