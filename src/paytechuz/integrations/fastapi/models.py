@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+
 class PaymentTransaction(Base):
     """
     Payment transaction model for storing payment information.
@@ -35,7 +36,11 @@ class PaymentTransaction(Base):
     reason = Column(Integer, nullable=True)  # Reason for cancellation
     extra_data = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
+    updated_at = Column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow, index=True
+    )
     performed_at = Column(DateTime, nullable=True, index=True)
     cancelled_at = Column(DateTime, nullable=True, index=True)
 
@@ -107,7 +112,9 @@ class PaymentTransaction(Base):
 
         return self
 
-    def mark_as_cancelled(self, db, reason: Optional[str] = None) -> "PaymentTransaction":
+    def mark_as_cancelled(
+        self, db, reason: Optional[str] = None
+    ) -> "PaymentTransaction":
         """
         Mark the transaction as cancelled.
 
@@ -118,23 +125,21 @@ class PaymentTransaction(Base):
         Returns:
             PaymentTransaction instance
         """
-        # If reason is not provided, use default reason from PaymeCancelReason
         if reason is None:
-            # Import here to avoid circular imports
-            from paytechuz.core.constants import PaymeCancelReason
-            reason_code = PaymeCancelReason.REASON_FUND_RETURNED  # Default reason 5
+            reason_code = 5  # REASON_FUND_RETURNED
         else:
-            # Convert reason to int if it's a string
             if isinstance(reason, str) and reason.isdigit():
                 reason_code = int(reason)
             else:
                 reason_code = reason
 
-        # Only update state if not already cancelled
         if self.state not in [self.CANCELLED, self.CANCELLED_DURING_INIT]:
-            # Always set state to CANCELLED (-2) for Payme API compatibility
-            # regardless of the current state
-            self.state = self.CANCELLED
+            if self.state == self.INITIATING or reason_code == 3:
+                self.state = self.CANCELLED_DURING_INIT
+            else:
+                # Otherwise, set state to CANCELLED (-2)
+                self.state = self.CANCELLED
+
             self.cancelled_at = datetime.utcnow()
 
         # Store the reason directly in the reason column

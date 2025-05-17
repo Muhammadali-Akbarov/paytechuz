@@ -7,11 +7,10 @@ import json
 import logging
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional
 
 from fastapi import (
     APIRouter,
-    Depends,
     HTTPException,
     Request,
     Response,
@@ -19,6 +18,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
+# pylint: disable=E0401,E0611
 from paytechuz.core.exceptions import (
     PermissionDenied,
     InvalidAmount,
@@ -185,13 +185,12 @@ class PaymeWebhookHandler:
                     'jsonrpc': '2.0',
                     'id': request_id if 'request_id' in locals() else 0,
                     'error': {
-                        # Code for account not found, in the range -31099 to -31050
                         'code': -31050,
                         'message': str(e)
                     }
                 }),
                 media_type="application/json",
-                status_code=200  # Return 200 status code for all errors
+                status_code=200
             )
 
         except InvalidAmount as e:
@@ -200,12 +199,12 @@ class PaymeWebhookHandler:
                     'jsonrpc': '2.0',
                     'id': request_id if 'request_id' in locals() else 0,
                     'error': {
-                        'code': -31001,  # Code for invalid amount
+                        'code': -31001,
                         'message': str(e)
                     }
                 }),
                 media_type="application/json",
-                status_code=200  # Return 200 status code for all errors
+                status_code=200
             )
 
         except InvalidAccount as e:
@@ -214,13 +213,12 @@ class PaymeWebhookHandler:
                     'jsonrpc': '2.0',
                     'id': request_id if 'request_id' in locals() else 0,
                     'error': {
-                        # Code for invalid account, in the range -31099 to -31050
                         'code': -31050,
                         'message': str(e)
                     }
                 }),
                 media_type="application/json",
-                status_code=200  # Return 200 status code for all errors
+                status_code=200
             )
 
         except TransactionNotFound as e:
@@ -234,7 +232,7 @@ class PaymeWebhookHandler:
                     }
                 }),
                 media_type="application/json",
-                status_code=200  # Return 200 status code for all errors
+                status_code=200
             )
 
         except Exception as e:
@@ -249,7 +247,7 @@ class PaymeWebhookHandler:
                     }
                 }),
                 media_type="application/json",
-                status_code=200  # Return 200 status code for all errors
+                status_code=200
             )
 
     def _check_auth(self, auth_header: Optional[str]) -> None:
@@ -270,7 +268,6 @@ class PaymeWebhookHandler:
             if password != self.payme_key:
                 raise PermissionDenied("Invalid merchant key")
         except PermissionDenied:
-            # Re-raise permission denied exceptions
             raise
         except Exception as e:
             logger.error(f"Authentication error: {e}")
@@ -284,13 +281,12 @@ class PaymeWebhookHandler:
         if not account_value:
             raise AccountNotFound("Account not found in parameters")
 
-        # Handle special case for 'order_id' field
         lookup_field = 'id' if self.account_field == 'order_id' else (
             self.account_field
         )
 
-        # Try to convert account_value to int if it's a string and lookup_field is 'id'
-        if (lookup_field == 'id' and isinstance(account_value, str) and
+        if (lookup_field == 'id' and
+                isinstance(account_value, str) and
                 account_value.isdigit()):
             account_value = int(account_value)
 
@@ -324,12 +320,15 @@ class PaymeWebhookHandler:
         # If one_time_payment is disabled, amount must be positive
         if not self.one_time_payment and received_amount <= 0:
             raise InvalidAmount(
-                f"Invalid amount. Amount must be positive, received: {received_amount}"
+                (f"Invalid amount. Amount must be positive, "
+                 f"received: {received_amount}")
             )
 
         return True
 
-    def _check_perform_transaction(self, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _check_perform_transaction(
+        self, params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Handle CheckPerformTransaction method.
         """
@@ -351,8 +350,8 @@ class PaymeWebhookHandler:
 
         self._validate_amount(account, amount)
 
-        # Check if there's already a transaction for this account with a different transaction_id
-        # Only check if one_time_payment is enabled
+        # Check if there's already a transaction for this account with a
+        # different transaction_id. Only check if one_time_payment is enabled
         if self.one_time_payment:
             # Check for existing transactions in non-final states
             existing_transactions = self.db.query(PaymentTransaction).filter(
@@ -362,16 +361,23 @@ class PaymeWebhookHandler:
                 PaymentTransaction.transaction_id != transaction_id
             ).all()
 
-            # Filter out transactions in final states (SUCCESSFULLY, CANCELLED)
+            # Filter out transactions in final states
+            # (SUCCESSFULLY, CANCELLED, CANCELLED_DURING_INIT)
             non_final_transactions = [
                 t for t in existing_transactions
-                if t.state not in [PaymentTransaction.SUCCESSFULLY, PaymentTransaction.CANCELLED]
+                if t.state not in [
+                    PaymentTransaction.SUCCESSFULLY,
+                    PaymentTransaction.CANCELLED,
+                    PaymentTransaction.CANCELLED_DURING_INIT
+                ]
             ]
 
             if non_final_transactions:
-                # If there's already a transaction for this account with a different transaction_id in a non-final state, raise an error
+                # If there's already a transaction for this account with a
+                # different transaction_id in a non-final state, raise an error
                 raise InvalidAccount(
-                    f"Account with {self.account_field}={account.id} already has a pending transaction"
+                    (f"Account with {self.account_field}={account.id} "
+                     f"already has a pending transaction")
                 )
 
         # Check for existing transaction with the same transaction_id
@@ -386,7 +392,9 @@ class PaymeWebhookHandler:
 
             # For existing transactions, use the original time from extra_data
             # This ensures the same response is returned for repeated calls
-            create_time = transaction.extra_data.get('create_time', params.get('time'))
+            create_time = transaction.extra_data.get(
+                'create_time', params.get('time')
+            )
 
             return {
                 'transaction': transaction.transaction_id,
@@ -403,7 +411,9 @@ class PaymeWebhookHandler:
             state=PaymentTransaction.INITIATING,
             extra_data={
                 'account_field': self.account_field,
-                'account_value': params.get('account', {}).get(self.account_field),
+                'account_value': (
+                    params.get('account', {}).get(self.account_field)
+                ),
                 'create_time': params.get('time'),
                 'raw_params': params
             }
@@ -416,7 +426,8 @@ class PaymeWebhookHandler:
         # Call the event method
         self.transaction_created(params, transaction, account)
 
-        # Use the time from the request params instead of transaction.created_at
+        # Use the time from the request params
+        # instead of transaction.created_at
         create_time = params.get('time')
 
         return {
@@ -451,7 +462,9 @@ class PaymeWebhookHandler:
         return {
             'transaction': transaction.transaction_id,
             'state': transaction.state,
-            'perform_time': int(transaction.performed_at.timestamp() * 1000) if transaction.performed_at else 0,
+            'perform_time': int(
+                transaction.performed_at.timestamp() * 1000
+            ) if transaction.performed_at else 0,
         }
 
     def _check_transaction(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -475,18 +488,28 @@ class PaymeWebhookHandler:
         self.check_transaction(params, transaction)
 
         # Use the original time from extra_data for consistency
-        create_time = transaction.extra_data.get('create_time', int(transaction.created_at.timestamp() * 1000))
+        create_time = transaction.extra_data.get(
+            'create_time', int(transaction.created_at.timestamp() * 1000)
+        )
 
         return {
             'transaction': transaction.transaction_id,
             'state': transaction.state,
             'create_time': create_time,
-            'perform_time': int(transaction.performed_at.timestamp() * 1000) if transaction.performed_at else 0,
-            'cancel_time': int(transaction.cancelled_at.timestamp() * 1000) if transaction.cancelled_at else 0,
+            'perform_time': (
+                int(transaction.performed_at.timestamp() * 1000)
+                if transaction.performed_at else 0
+            ),
+            'cancel_time': (
+                int(transaction.cancelled_at.timestamp() * 1000)
+                if transaction.cancelled_at else 0
+            ),
             'reason': transaction.reason,
         }
 
-    def _cancel_response(self, transaction: PaymentTransaction) -> Dict[str, Any]:
+    def _cancel_response(
+        self, transaction: PaymentTransaction
+    ) -> Dict[str, Any]:
         """
         Helper method to generate cancel transaction response.
 
@@ -511,7 +534,8 @@ class PaymeWebhookHandler:
         return {
             'transaction': transaction.transaction_id,
             'state': transaction.state,
-            'cancel_time': int(transaction.cancelled_at.timestamp() * 1000) if transaction.cancelled_at else 0,
+            'cancel_time': (int(transaction.cancelled_at.timestamp() * 1000)
+                            if transaction.cancelled_at else 0),
             'reason': reason,
         }
 
@@ -534,15 +558,22 @@ class PaymeWebhookHandler:
             )
 
         # Check if transaction is already cancelled
-        if transaction.state == PaymentTransaction.CANCELLED:
-            # If transaction is already cancelled, update the reason if provided
+        cancelled_states = [
+            PaymentTransaction.CANCELLED,
+            PaymentTransaction.CANCELLED_DURING_INIT
+        ]
+        if transaction.state in cancelled_states:
+            # If transaction is already cancelled, update the reason
+            # if provided
             if 'reason' in params:
                 reason = params.get('reason')
 
-                # If reason is not provided, use default reason from PaymeCancelReason
+                # If reason is not provided, use default reason
+                # from PaymeCancelReason
                 if reason is None:
                     from paytechuz.core.constants import PaymeCancelReason
-                    reason = PaymeCancelReason.REASON_FUND_RETURNED  # Default reason 5
+                    # Default reason 5
+                    reason = PaymeCancelReason.REASON_FUND_RETURNED
 
                 # Convert reason to int if it's a string
                 if isinstance(reason, str) and reason.isdigit():
@@ -569,7 +600,8 @@ class PaymeWebhookHandler:
         # Ensure the reason is stored in extra_data
         extra_data = transaction.extra_data or {}
         if 'cancel_reason' not in extra_data:
-            extra_data['cancel_reason'] = reason if reason is not None else 5  # Default reason 5
+            # Default reason 5 if none provided
+            extra_data['cancel_reason'] = reason if reason is not None else 5
             transaction.extra_data = extra_data
             self.db.commit()
             self.db.refresh(transaction)
@@ -616,9 +648,18 @@ class PaymeWebhookHandler:
                     self.account_field: transaction.account_id
                 },
                 'state': transaction.state,
-                'create_time': transaction.extra_data.get('create_time', int(transaction.created_at.timestamp() * 1000)),
-                'perform_time': int(transaction.performed_at.timestamp() * 1000) if transaction.performed_at else 0,
-                'cancel_time': int(transaction.cancelled_at.timestamp() * 1000) if transaction.cancelled_at else 0,
+                'create_time': transaction.extra_data.get(
+                    'create_time',
+                    int(transaction.created_at.timestamp() * 1000)
+                ),
+                'perform_time': (
+                    int(transaction.performed_at.timestamp() * 1000)
+                    if transaction.performed_at else 0
+                ),
+                'cancel_time': (
+                    int(transaction.cancelled_at.timestamp() * 1000)
+                    if transaction.cancelled_at else 0
+                ),
                 'reason': transaction.reason,
             })
 
@@ -629,7 +670,9 @@ class PaymeWebhookHandler:
 
     # Event methods that can be overridden by subclasses
 
-    def before_check_perform_transaction(self, params: Dict[str, Any], account: Any) -> None:
+    def before_check_perform_transaction(
+        self, params: Dict[str, Any], account: Any
+    ) -> None:
         """
         Called before checking if a transaction can be performed.
 
@@ -639,7 +682,9 @@ class PaymeWebhookHandler:
         """
         pass
 
-    def transaction_already_exists(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def transaction_already_exists(
+        self, params: Dict[str, Any], transaction: PaymentTransaction
+    ) -> None:
         """
         Called when a transaction already exists.
 
@@ -649,7 +694,12 @@ class PaymeWebhookHandler:
         """
         pass
 
-    def transaction_created(self, params: Dict[str, Any], transaction: PaymentTransaction, account: Any) -> None:
+    def transaction_created(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction,
+        account: Any
+    ) -> None:
         """
         Called when a transaction is created.
 
@@ -660,7 +710,11 @@ class PaymeWebhookHandler:
         """
         pass
 
-    def successfully_payment(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def successfully_payment(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction
+    ) -> None:
         """
         Called when a payment is successful.
 
@@ -670,7 +724,11 @@ class PaymeWebhookHandler:
         """
         pass
 
-    def check_transaction(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def check_transaction(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction
+    ) -> None:
         """
         Called when checking a transaction.
 
@@ -680,7 +738,11 @@ class PaymeWebhookHandler:
         """
         pass
 
-    def cancelled_payment(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def cancelled_payment(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction
+    ) -> None:
         """
         Called when a payment is cancelled.
 
@@ -690,7 +752,11 @@ class PaymeWebhookHandler:
         """
         pass
 
-    def get_statement(self, params: Dict[str, Any], transactions: list) -> None:
+    def get_statement(
+        self,
+        params: Dict[str, Any],
+        transactions: list
+    ) -> None:
         """
         Called when getting a statement.
 
@@ -719,7 +785,9 @@ class ClickWebhookHandler:
             print(f"Payment successful: {transaction.transaction_id}")
 
             # Update your order status
-            order = db.query(Order).filter(Order.id == transaction.account_id).first()
+            order = (db.query(Order)
+                     .filter(Order.id == transaction.account_id)
+                     .first())
             order.status = 'paid'
             db.commit()
     ```
@@ -788,7 +856,8 @@ class ClickWebhookHandler:
 
             # Validate amount
             try:
-                self._validate_amount(amount, float(getattr(account, 'amount', 0)))
+                expected = float(getattr(account, 'amount', 0))
+                self._validate_amount(amount, expected)
             except Exception as e:
                 logger.error(f"Invalid amount: {e}")
                 return {
@@ -886,7 +955,8 @@ class ClickWebhookHandler:
                     self.successfully_payment(params, transaction)
                 else:
                     # Mark transaction as cancelled
-                    transaction.mark_as_cancelled(self.db, reason=f"Error code: {error}")
+                    error_reason = f"Error code: {error}"
+                    transaction.mark_as_cancelled(self.db, reason=error_reason)
 
                     # Call the event method
                     self.cancelled_payment(params, transaction)
@@ -937,10 +1007,15 @@ class ClickWebhookHandler:
                 )
 
             # Create string to sign
-            to_sign = f"{params.get('click_trans_id')}{params.get('service_id')}"
-            to_sign += f"{self.secret_key}{params.get('merchant_trans_id')}"
-            to_sign += f"{params.get('amount')}{params.get('action')}"
-            to_sign += f"{sign_time}"
+            to_sign = (
+                f"{params.get('click_trans_id')}"
+                f"{params.get('service_id')}"
+                f"{self.secret_key}"
+                f"{params.get('merchant_trans_id')}"
+                f"{params.get('amount')}"
+                f"{params.get('action')}"
+                f"{sign_time}"
+            )
 
             # Generate signature
             signature = hashlib.md5(to_sign.encode('utf-8')).hexdigest()
@@ -959,7 +1034,11 @@ class ClickWebhookHandler:
         if isinstance(merchant_trans_id, str) and merchant_trans_id.isdigit():
             merchant_trans_id = int(merchant_trans_id)
 
-        account = self.db.query(self.account_model).filter_by(id=merchant_trans_id).first()
+        account = (
+            self.db.query(self.account_model)
+            .filter_by(id=merchant_trans_id)
+            .first()
+        )
         if not account:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -968,25 +1047,35 @@ class ClickWebhookHandler:
 
         return account
 
-    def _validate_amount(self, received_amount: float, expected_amount: float) -> None:
+    def _validate_amount(
+        self, received_amount: float, expected_amount: float
+    ) -> None:
         """
         Validate payment amount.
         """
         # Add commission if needed
         if self.commission_percent > 0:
-            expected_amount = expected_amount * (1 + self.commission_percent / 100)
+            commission_factor = 1 + (self.commission_percent / 100)
+            expected_amount = expected_amount * commission_factor
             expected_amount = round(expected_amount, 2)
 
         # Allow small difference due to floating point precision
         if abs(received_amount - expected_amount) > 0.01:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Incorrect amount. Expected: {expected_amount}, received: {received_amount}"
+                detail=(
+                    f"Incorrect amount. Expected: {expected_amount}, "
+                    f"received: {received_amount}"
+                )
             )
 
     # Event methods that can be overridden by subclasses
 
-    def transaction_already_exists(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def transaction_already_exists(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction
+    ) -> None:
         """
         Called when a transaction already exists.
 
@@ -996,7 +1085,12 @@ class ClickWebhookHandler:
         """
         pass
 
-    def transaction_created(self, params: Dict[str, Any], transaction: PaymentTransaction, account: Any) -> None:
+    def transaction_created(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction,
+        account: Any
+    ) -> None:
         """
         Called when a transaction is created.
 
@@ -1007,7 +1101,11 @@ class ClickWebhookHandler:
         """
         pass
 
-    def successfully_payment(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def successfully_payment(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction
+    ) -> None:
         """
         Called when a payment is successful.
 
@@ -1017,7 +1115,11 @@ class ClickWebhookHandler:
         """
         pass
 
-    def cancelled_payment(self, params: Dict[str, Any], transaction: PaymentTransaction) -> None:
+    def cancelled_payment(
+        self,
+        params: Dict[str, Any],
+        transaction: PaymentTransaction
+    ) -> None:
         """
         Called when a payment is cancelled.
 
