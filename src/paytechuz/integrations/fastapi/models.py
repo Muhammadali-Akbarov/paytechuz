@@ -154,3 +154,26 @@ class PaymentTransaction(Base):
         db.refresh(self)
 
         return self
+
+
+def run_migrations(engine: Any) -> None:
+    """
+    Run database migrations for PayTechUZ FastAPI integration.
+
+    This function creates all necessary tables in the database for the
+    PayTechUZ payment system. Call this function when setting up your FastAPI
+    application to ensure all required database tables are created.
+
+    Example:
+        ```python
+        from sqlalchemy import create_engine
+        from paytechuz.integrations.fastapi.models import run_migrations
+
+        engine = create_engine("sqlite:///./payments.db")
+        run_migrations(engine)
+        ```
+
+    Args:
+        engine: SQLAlchemy engine instance
+    """
+    Base.metadata.create_all(bind=engine)
