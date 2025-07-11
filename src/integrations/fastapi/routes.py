@@ -357,7 +357,7 @@ class PaymeWebhookHandler:
             # Check for existing transactions in non-final states
             existing_transactions = self.db.query(PaymentTransaction).filter(
                 PaymentTransaction.gateway == PaymentTransaction.PAYME,
-                PaymentTransaction.account_id == account.id
+                PaymentTransaction.account_id == str(account.id)
             ).filter(
                 PaymentTransaction.transaction_id != transaction_id
             ).all()
