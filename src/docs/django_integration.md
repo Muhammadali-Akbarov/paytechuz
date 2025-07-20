@@ -134,7 +134,6 @@ class ClickWebhookView(BaseClickWebhookView):
 ```
 
 ## To'lov uchun link yaratish
-
 ```python
 from paytechuz.gateways.payme import PaymeGateway
 from paytechuz.gateways.click import ClickGateway

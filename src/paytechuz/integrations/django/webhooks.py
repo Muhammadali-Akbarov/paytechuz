@@ -38,30 +38,37 @@ class PaymeWebhook(View):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Try to get the account model from settings
-        # Get the account model from settings
-        account_model_path = getattr(
-            settings, 'PAYME_ACCOUNT_MODEL', 'django.contrib.auth.models.User'
+        paytechuz_settings = getattr(settings, 'PAYTECHUZ', {})
+        payme_settings = paytechuz_settings.get('PAYME', {})
+
+        self.payme_id = payme_settings.get('PAYME_ID') or getattr(settings, 'PAYME_ID', '')
+        self.payme_key = payme_settings.get('PAYME_KEY') or getattr(settings, 'PAYME_KEY', '')
+
+        account_model_path = (
+            payme_settings.get('ACCOUNT_MODEL') or 
+            getattr(settings, 'PAYME_ACCOUNT_MODEL', 'django.contrib.auth.models.User')
         )
         try:
             self.account_model = import_string(account_model_path)
         except ImportError:
-            # If the model is not found, log an error and raise an exception
             logger.error(
-                "Could not import %s. Check PAYME_ACCOUNT_MODEL setting.",
+                "Could not import %s. Check PAYTECHUZ.PAYME.ACCOUNT_MODEL setting.",
                 account_model_path
             )
-            raise ImportError(
-                f"Import error: {account_model_path}"
-            ) from None
+            raise ImportError(f"Import error: {account_model_path}") from None
 
-        self.account_field = getattr(settings, 'PAYME_ACCOUNT_FIELD', 'id')
-        self.amount_field = getattr(settings, 'PAYME_AMOUNT_FIELD', 'amount')
-        self.one_time_payment = getattr(
-            settings, 'PAYME_ONE_TIME_PAYMENT', True
+        self.account_field = (
+            payme_settings.get('ACCOUNT_FIELD') or 
+            getattr(settings, 'PAYME_ACCOUNT_FIELD', 'id')
         )
-        self.payme_id = getattr(settings, 'PAYME_ID', '')
-        self.payme_key = getattr(settings, 'PAYME_KEY', '')
+        self.amount_field = (
+            payme_settings.get('AMOUNT_FIELD') or 
+            getattr(settings, 'PAYME_AMOUNT_FIELD', 'amount')
+        )
+        self.one_time_payment = (
+            payme_settings.get('ONE_TIME_PAYMENT') or 
+            getattr(settings, 'PAYME_ONE_TIME_PAYMENT', True)
+        )
 
     def post(self, request, **_):
         """
@@ -580,27 +587,33 @@ class ClickWebhook(View):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        # Try to get the account model from settings
-        # Get the account model from settings
-        account_model_path = getattr(
-            settings, 'CLICK_ACCOUNT_MODEL', 'django.contrib.auth.models.User'
+        paytechuz_settings = getattr(settings, 'PAYTECHUZ', {})
+        click_settings = paytechuz_settings.get('CLICK', {})
+        
+        account_model_path = (
+            click_settings.get('ACCOUNT_MODEL') or 
+            getattr(settings, 'CLICK_ACCOUNT_MODEL')
         )
         try:
             self.account_model = import_string(account_model_path)
         except ImportError:
-            # If the model is not found, log an error and raise an exception
             logger.error(
-                "Could not import %s. Check CLICK_ACCOUNT_MODEL setting.",
+                "Could not import %s. Check PAYTECHUZ.CLICK.ACCOUNT_MODEL setting.",
                 account_model_path
             )
-            raise ImportError(
-                f"Import error: {account_model_path}"
-            ) from None
+            raise ImportError(f"Import error: {account_model_path}") from None
 
-        self.service_id = getattr(settings, 'CLICK_SERVICE_ID', '')
-        self.secret_key = getattr(settings, 'CLICK_SECRET_KEY', '')
-        self.commission_percent = getattr(
-            settings, 'CLICK_COMMISSION_PERCENT', 0.0
+        self.service_id = (
+            click_settings.get('SERVICE_ID') or 
+            getattr(settings, 'CLICK_SERVICE_ID', '')
+        )
+        self.secret_key = (
+            click_settings.get('SECRET_KEY') or 
+            getattr(settings, 'CLICK_SECRET_KEY', '')
+        )
+        self.commission_percent = (
+            click_settings.get('COMMISSION_PERCENT') or 
+            getattr(settings, 'CLICK_COMMISSION_PERCENT', 0.0)
         )
 
     def post(self, request, **_):

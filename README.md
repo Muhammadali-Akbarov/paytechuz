@@ -2,9 +2,12 @@
 
 [![PyPI version](https://badge.fury.io/py/paytechuz.svg)](https://badge.fury.io/py/paytechuz)
 [![Python Versions](https://img.shields.io/pypi/pyversions/paytechuz.svg)](https://pypi.org/project/paytechuz/)
+[![Documentation](https://img.shields.io/badge/docs-pay--tech.uz-blue.svg)](https://pay-tech.uz)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 PayTechUZ is a unified payment library for integrating with popular payment systems in Uzbekistan. It provides a simple and consistent interface for working with Payme and Click payment gateways.
+
+📖 **[Complete Documentation](https://pay-tech.uz)** | 🚀 **[Quick Start Guide](https://pay-tech.uz/quickstart)**
 
 ## Features
 
@@ -33,6 +36,8 @@ pip install paytechuz[fastapi]
 ```
 
 ## Quick Start
+
+> 💡 **Need help?** Check out our [complete documentation](https://pay-tech.uz) for detailed guides and examples.
 
 ### Generate Payment Links
 
@@ -106,18 +111,26 @@ INSTALLED_APPS = [
     'paytechuz.integrations.django',
 ]
 
-PAYME_ID = 'your_payme_merchant_id'
-PAYME_KEY = 'your_payme_merchant_key'
-PAYME_ACCOUNT_MODEL = 'your_app.models.Order'  # For example: 'orders.models.Order'
-PAYME_ACCOUNT_FIELD = 'id'
-PAYME_AMOUNT_FIELD = 'amount'  # Field for storing payment amount
-PAYME_ONE_TIME_PAYMENT = True  # Allow only one payment per account
-
-CLICK_SERVICE_ID = 'your_click_service_id'
-CLICK_MERCHANT_ID = 'your_click_merchant_id'
-CLICK_SECRET_KEY = 'your_click_secret_key'
-CLICK_ACCOUNT_MODEL = 'your_app.models.Order'
-CLICK_COMMISSION_PERCENT = 0.0
+PAYTECHUZ = {
+    'PAYME': {
+        'PAYME_ID': 'your_payme_id',
+        'PAYME_KEY': 'your_payme_key',
+        'ACCOUNT_MODEL': 'your_app.models.Order',  # For example: 'orders.models.Order'
+        'ACCOUNT_FIELD': 'id',
+        'AMOUNT_FIELD': 'amount',
+        'ONE_TIME_PAYMENT': True,
+        'IS_TEST_MODE': True,  # Set to False in production
+    },
+    'CLICK': {
+        'SERVICE_ID': 'your_service_id',
+        'MERCHANT_ID': 'your_merchant_id',
+        'MERCHANT_USER_ID': 'your_merchant_user_id',
+        'SECRET_KEY': 'your_secret_key',
+        'ACCOUNT_MODEL': 'your_app.models.Order',
+        'COMMISSION_PERCENT': 0.0,
+        'IS_TEST_MODE': True,  # Set to False in production
+    }
+}
 ```
 
 3. Create webhook handlers:
@@ -297,6 +310,10 @@ Detailed documentation is available in multiple languages:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+📖 **Documentation:** [pay-tech.uz](https://pay-tech.uz)  
+🐛 **Issues:** [GitHub Issues](https://github.com/PayTechUz/paytechuz-py/issues)  
+💬 **Support:** [Telegram](https://t.me/paytechuz)
 
 ## License
 
