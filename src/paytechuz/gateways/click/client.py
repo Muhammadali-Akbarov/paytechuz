@@ -109,7 +109,10 @@ class ClickGateway(BasePaymentGateway):
             payment_url += f"&callback_url={callback_url}"
 
         if description:
-            payment_url += f"&merchant_user_id={description}"
+            payment_url += f"&description={description}"
+
+        if self.merchant_user_id:
+            payment_url += f"&merchant_user_id={self.merchant_user_id}"
 
         # Generate a unique transaction ID
         transaction_id = f"click_{id}_{int(amount_tiyin)}"
