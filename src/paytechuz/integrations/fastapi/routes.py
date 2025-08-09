@@ -989,42 +989,47 @@ class ClickWebhookHandler:
         """
         Check authentication using signature.
         """
-        if str(params.get('service_id')) != self.service_id:
+        if not all([self.service_id, self.secret_key]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing required settings: service_id or secret_key"
+            )
+
+        if str(params.get("service_id")) != self.service_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid service ID"
             )
 
-        # Check signature if secret key is provided
-        if self.secret_key:
-            sign_string = params.get('sign_string')
-            sign_time = params.get('sign_time')
+        sign_string = params.get("sign_string")
+        sign_time = params.get("sign_time")
 
-            if not sign_string or not sign_time:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Missing signature parameters"
-                )
-
-            # Create string to sign
-            to_sign = (
-                f"{params.get('click_trans_id')}"
-                f"{params.get('service_id')}"
-                f"{self.secret_key}"
-                f"{params.get('merchant_trans_id')}"
-                f"{params.get('amount')}"
-                f"{params.get('action')}"
-                f"{sign_time}"
+        if not sign_string or not sign_time:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing signature parameters"
             )
 
-            # Generate signature
-            signature = hashlib.md5(to_sign.encode('utf-8')).hexdigest()
+        # Prepare signature components
+        text_parts = [
+            str(params.get("click_trans_id") or ""),
+            str(params.get("service_id") or ""),
+            str(self.secret_key or ""),
+            str(params.get("merchant_trans_id") or ""),
+            str(params.get("merchant_prepare_id") or ""),
+            str(params.get("amount") or ""),
+            str(params.get("action") or ""),
+            str(sign_time)
+        ]
 
-            if signature != sign_string:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid signature"
-                )
+        # Calculate hash
+        calculated_hash = hashlib.md5("".join(text_parts).encode("utf-8")).hexdigest()
+
+        if calculated_hash != sign_string:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature"
+            )
 
     def _find_account(self, merchant_trans_id: str) -> Any:
         """
