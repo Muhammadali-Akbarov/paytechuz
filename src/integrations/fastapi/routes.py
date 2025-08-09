@@ -7,11 +7,10 @@ import json
 import logging
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional
 
 from fastapi import (
     APIRouter,
-    Depends,
     HTTPException,
     Request,
     Response,
@@ -919,37 +918,48 @@ class ClickWebhookHandler:
         """
         Check authentication using signature.
         """
-        if str(params.get('service_id')) != self.service_id:
+        if not all([self.service_id, self.secret_key]):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing required settings: service_id or secret_key"
+            )
+
+        if str(params.get("service_id")) != self.service_id:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid service ID"
             )
 
-        # Check signature if secret key is provided
-        if self.secret_key:
-            sign_string = params.get('sign_string')
-            sign_time = params.get('sign_time')
+        sign_string = params.get("sign_string")
+        sign_time = params.get("sign_time")
 
-            if not sign_string or not sign_time:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Missing signature parameters"
-                )
+        if not sign_string or not sign_time:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing signature parameters"
+            )
 
-            # Create string to sign
-            to_sign = f"{params.get('click_trans_id')}{params.get('service_id')}"
-            to_sign += f"{self.secret_key}{params.get('merchant_trans_id')}"
-            to_sign += f"{params.get('amount')}{params.get('action')}"
-            to_sign += f"{sign_time}"
+        # Prepare signature components
+        text_parts = [
+            str(params.get("click_trans_id") or ""),
+            str(params.get("service_id") or ""),
+            str(self.secret_key or ""),
+            str(params.get("merchant_trans_id") or ""),
+            str(params.get("merchant_prepare_id") or ""),
+            str(params.get("amount") or ""),
+            str(params.get("action") or ""),
+            str(sign_time)
+        ]
 
-            # Generate signature
-            signature = hashlib.md5(to_sign.encode('utf-8')).hexdigest()
+        # Calculate hash
+        calculated_hash = hashlib.md5("".join(text_parts).encode("utf-8")).hexdigest()
 
-            if signature != sign_string:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid signature"
-                )
+        if calculated_hash != sign_string:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid signature"
+            )
+
 
     def _find_account(self, merchant_trans_id: str) -> Any:
         """

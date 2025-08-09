@@ -121,7 +121,6 @@ async def click_webhook(request: Request, db: Session = Depends(get_db)):
     handler = CustomClickWebhookHandler(
         db=db,
         service_id='your_click_service_id',
-        merchant_id='your_click_merchant_id',
         secret_key='your_click_secret_key',
         account_model=Order
     )
