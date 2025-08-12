@@ -786,30 +786,37 @@ class ClickWebhook(View):
         """
         Check authentication using signature.
         """
-        if str(params.get('service_id')) != self.service_id:
+        # Check if service_id and secret_key are set
+        if not self.service_id or not self.secret_key:
+            raise PermissionDenied("Missing required settings: service_id or secret_key")
+
+        if str(params.get("service_id")) != self.service_id:
             raise PermissionDenied("Invalid service ID")
 
-        # Check signature if secret key is provided
-        if self.secret_key:
-            sign_string = params.get('sign_string')
-            sign_time = params.get('sign_time')
+        sign_string = params.get("sign_string")
+        sign_time = params.get("sign_time")
 
-            if not sign_string or not sign_time:
-                raise PermissionDenied("Missing signature parameters")
+        if not sign_string or not sign_time:
+            raise PermissionDenied("Missing signature parameters")
 
-            # Create string to sign
-            to_sign = (
-                f"{params.get('click_trans_id')}{params.get('service_id')}"
-            )
-            to_sign += f"{self.secret_key}{params.get('merchant_trans_id')}"
-            to_sign += f"{params.get('amount')}{params.get('action')}"
-            to_sign += f"{sign_time}"
+        # Prepare signature components; note merchant_prepare_id added compared to your original
+        text_parts = [
+            str(params.get("click_trans_id") or ""),
+            str(params.get("service_id") or ""),
+            str(self.secret_key or ""),
+            str(params.get("merchant_trans_id") or ""),
+            str(params.get("merchant_prepare_id") or ""),  # added here
+            str(params.get("amount") or ""),
+            str(params.get("action") or ""),
+            str(sign_time)
+        ]
 
-            # Generate signature
-            signature = hashlib.md5(to_sign.encode('utf-8')).hexdigest()
+        # Calculate hash
+        calculated_hash = hashlib.md5("".join(text_parts).encode("utf-8")).hexdigest()
 
-            if signature != sign_string:
-                raise PermissionDenied("Invalid signature")
+        if calculated_hash != sign_string:
+            raise PermissionDenied("Invalid signature")
+
 
     def _find_account(self, merchant_trans_id):
         """
