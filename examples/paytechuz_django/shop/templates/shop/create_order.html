@@ -1,0 +1,78 @@
+{% extends 'shop/base.html' %}
+
+{% block title %}Create Order - PayTech UZ Shop{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Create New Order</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.product_name.id_for_label }}" class="form-label">Product Name</label>
+                        {{ form.product_name }}
+                        {% if form.product_name.errors %}
+                            <div class="text-danger">
+                                {% for error in form.product_name.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">Amount (UZS)</label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                            <div class="text-danger">
+                                {% for error in form.amount.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.payment_type.id_for_label }}" class="form-label">Payment Method</label>
+                        {{ form.payment_type }}
+                        {% if form.payment_type.errors %}
+                            <div class="text-danger">
+                                {% for error in form.payment_type.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Create Order & Pay</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <div class="card">
+                <div class="card-body">
+                    <h6 class="card-title">Payment Methods</h6>
+                    <div class="row">
+                        <div class="col-6 text-center">
+                            <img src="https://payme.uz/assets/images/logo.svg" alt="Payme" class="img-fluid" style="max-height: 40px;">
+                            <p class="small mt-2">Payme</p>
+                        </div>
+                        <div class="col-6 text-center">
+                            <img src="https://click.uz/assets/images/logo.svg" alt="Click" class="img-fluid" style="max-height: 40px;">
+                            <p class="small mt-2">Click</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
