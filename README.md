@@ -5,7 +5,7 @@
 [![Documentation](https://img.shields.io/badge/docs-pay--tech.uz-blue.svg)](https://pay-tech.uz)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-PayTechUZ is a unified payment library for integrating with popular payment systems in Uzbekistan. It provides a simple and consistent interface for working with Payme and Click payment gateways.
+PayTechUZ is a unified payment library for integrating with popular payment systems in Uzbekistan. It provides a simple and consistent interface for working with Payme, Click, and Atmos payment gateways.
 
 📖 **[Complete Documentation](https://pay-tech.uz)** | 🚀 **[Quick Start Guide](https://pay-tech.uz/quickstart)**
 
@@ -44,6 +44,7 @@ pip install paytechuz[fastapi]
 ```python
 from paytechuz.gateways.payme import PaymeGateway
 from paytechuz.gateways.click import ClickGateway
+from paytechuz.gateways.atmos import AtmosGateway
 
 # Initialize Payme gateway
 payme = PaymeGateway(
@@ -61,6 +62,15 @@ click = ClickGateway(
     is_test_mode=True  # Set to False in production environment
 )
 
+# Initialize Atmos gateway
+atmos = AtmosGateway(
+    consumer_key="your_consumer_key",
+    consumer_secret="your_consumer_secret",
+    store_id="your_store_id",
+    terminal_id="your_terminal_id",  # optional
+    is_test_mode=True  # Set to False in production environment
+)
+
 # Generate payment links
 payme_link = payme.create_payment(
     id="order_123",
@@ -74,6 +84,24 @@ click_link = click.create_payment(
     description="Test payment",
     return_url="https://example.com/return"
 )
+
+atmos_payment = atmos.create_payment(
+    account_id="order_123",
+    amount=150000  # amount in UZS
+)
+atmos_link = atmos_payment['payment_url']
+
+# Check payment status
+status = atmos.check_payment(atmos_payment['transaction_id'])
+print(f"Payment status: {status['status']}")
+
+# Cancel payment if needed
+if status['status'] == 'pending':
+    cancel_result = atmos.cancel_payment(
+        transaction_id=atmos_payment['transaction_id'],
+        reason="Customer request"
+    )
+    print(f"Cancellation status: {cancel_result['status']}")
 ```
 
 ### Django Integration
@@ -129,6 +157,16 @@ PAYTECHUZ = {
         'ACCOUNT_MODEL': 'your_app.models.Order',
         'COMMISSION_PERCENT': 0.0,
         'IS_TEST_MODE': True,  # Set to False in production
+    },
+    'ATMOS': {
+        'CONSUMER_KEY': 'your_atmos_consumer_key',
+        'CONSUMER_SECRET': 'your_atmos_consumer_secret',
+        'STORE_ID': 'your_atmos_store_id',
+        'TERMINAL_ID': 'your_atmos_terminal_id',  # Optional
+        'API_KEY': 'your_atmos_api_key'
+        'ACCOUNT_MODEL': 'your_app.models.Order',
+        'ACCOUNT_FIELD': 'id',
+        'IS_TEST_MODE': True,  # Set to False in production
     }
 }
 ```
@@ -137,7 +175,11 @@ PAYTECHUZ = {
 
 ```python
 # views.py
-from paytechuz.integrations.django.views import BasePaymeWebhookView, BaseClickWebhookView
+from paytechuz.integrations.django.views import (
+    BasePaymeWebhookView,
+    BaseClickWebhookView,
+    BaseAtmosWebhookView
+)
 from .models import Order
 
 class PaymeWebhookView(BasePaymeWebhookView):
@@ -161,6 +203,17 @@ class ClickWebhookView(BaseClickWebhookView):
         order = Order.objects.get(id=transaction.account_id)
         order.status = 'cancelled'
         order.save()
+
+class AtmosWebhookView(BaseAtmosWebhookView):
+    def successfully_payment(self, params, transaction):
+        order = Order.objects.get(id=transaction.account_id)
+        order.status = 'paid'
+        order.save()
+
+    def cancelled_payment(self, params, transaction):
+        order = Order.objects.get(id=transaction.account_id)
+        order.status = 'cancelled'
+        order.save()
 ```
 
 4. Add webhook URLs to `urls.py`:
@@ -169,12 +222,13 @@ class ClickWebhookView(BaseClickWebhookView):
 # urls.py
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
-from .views import PaymeWebhookView, ClickWebhookView
+from .views import PaymeWebhookView, ClickWebhookView, AtmosWebhookView
 
 urlpatterns = [
     # ...
     path('payments/webhook/payme/', csrf_exempt(PaymeWebhookView.as_view()), name='payme_webhook'),
     path('payments/webhook/click/', csrf_exempt(ClickWebhookView.as_view()), name='click_webhook'),
+    path('payments/webhook/atmos/', csrf_exempt(AtmosWebhookView.as_view()), name='atmos_webhook'),
 ]
 ```
 
@@ -228,6 +282,7 @@ from fastapi import FastAPI, Request, Depends
 from sqlalchemy.orm import Session
 
 from paytechuz.integrations.fastapi import PaymeWebhookHandler, ClickWebhookHandler
+from paytechuz.gateways.atmos.webhook import AtmosWebhookHandler
 
 
 app = FastAPI()
@@ -287,6 +342,39 @@ async def click_webhook(request: Request, db: Session = Depends(get_db)):
         account_model=Order
     )
     return await handler.handle_webhook(request)
+
+@app.post("/payments/atmos/webhook")
+async def atmos_webhook(request: Request, db: Session = Depends(get_db)):
+    import json
+
+    # Atmos webhook handler
+    atmos_handler = AtmosWebhookHandler(api_key="your_atmos_api_key")
+
+    try:
+        # Get request body
+        body = await request.body()
+        webhook_data = json.loads(body.decode('utf-8'))
+
+        # Process webhook
+        response = atmos_handler.handle_webhook(webhook_data)
+
+        if response['status'] == 1:
+            # Payment successful
+            invoice = webhook_data.get('invoice')
+
+            # Update order status
+            order = db.query(Order).filter(Order.id == invoice).first()
+            if order:
+                order.status = "paid"
+                db.commit()
+
+        return response
+
+    except Exception as e:
+        return {
+            'status': 0,
+            'message': f'Error: {str(e)}'
+        }
 ```
 
 ## Documentation
@@ -300,11 +388,13 @@ Detailed documentation is available in multiple languages:
 
 - [Django Integration Guide](src/docs/en/django_integration.md) | [Django integratsiyasi bo'yicha qo'llanma](src/docs/django_integration.md)
 - [FastAPI Integration Guide](src/docs/en/fastapi_integration.md) | [FastAPI integratsiyasi bo'yicha qo'llanma](src/docs/fastapi_integration.md)
+- [Atmos Integration Guide](src/docs/en/atmos_integration.md) | [Atmos integratsiyasi bo'yicha qo'llanma](src/docs/atmos_integration.md)
 
 ## Supported Payment Systems
 
 - **Payme** - [Official Website](https://payme.uz)
 - **Click** - [Official Website](https://click.uz)
+- **Atmos** - [Official Website](https://atmos.uz)
 
 ## Contributing
 

@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from paytechuz.gateways.payme import PaymeGateway
 from paytechuz.gateways.click import ClickGateway
+from paytechuz.gateways.atmos import AtmosGateway
 from django.conf import settings
 
 from .serializers import OrderCreateSerializer, PaymentLinkResponseSerializer
@@ -73,6 +74,20 @@ def generate_payment_link(order):
             id=order.id,
             amount=float(order.amount),
             return_url="https://example.com/return"
+        )
+        return result.get("payment_url")
+
+    if order.payment_type == 'atmos':
+        atmos = AtmosGateway(
+            consumer_key=paytechuz_settings['ATMOS']['CONSUMER_KEY'],
+            consumer_secret=paytechuz_settings['ATMOS']['CONSUMER_SECRET'],
+            store_id=paytechuz_settings['ATMOS']['STORE_ID'],
+            terminal_id=paytechuz_settings['ATMOS'].get('TERMINAL_ID'),
+            is_test_mode=paytechuz_settings['ATMOS']['IS_TEST_MODE']
+        )
+        result = atmos.create_payment(
+            account_id=order.id,
+            amount=float(order.amount)
         )
         return result.get("payment_url")
 

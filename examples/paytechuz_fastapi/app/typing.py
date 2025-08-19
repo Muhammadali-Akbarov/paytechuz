@@ -7,7 +7,7 @@ class OrderCreate(BaseModel):
     product_name: str
     amount: float
     description: Optional[str] = None
-    payment_method: str  # "payme" yoki "click"
+    payment_method: str  # "payme", "click" yoki "atmos"
     return_url: Optional[str] = "https://example.com/return"
 
 class OrderResponse(BaseModel):
@@ -26,7 +26,7 @@ class OrderResponse(BaseModel):
 class PaymentLinkRequest(BaseModel):
     """To'lov linkini generatsiya qilish uchun request model"""
     order_id: int
-    payment_method: str  # "payme" yoki "click"
+    payment_method: str  # "payme", "click" yoki "atmos"
     return_url: Optional[str] = "https://example.com/return"
 
 class PaymentLinkResponse(BaseModel):

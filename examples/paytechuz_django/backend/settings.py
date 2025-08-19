@@ -62,6 +62,16 @@ PAYTECHUZ = {
         'ACCOUNT_MODEL': 'shop.models.Order',
         'COMMISSION_PERCENT': 0.0,
         'IS_TEST_MODE': True,
+    },
+    'ATMOS': {
+        'CONSUMER_KEY': 'your_atmos_consumer_key',
+        'CONSUMER_SECRET': 'your_atmos_consumer_secret',
+        'STORE_ID': 'your_atmos_store_id',
+        'TERMINAL_ID': 'your_atmos_terminal_id',  # Optional
+        'API_KEY': 'your_atmos_api_key',
+        'ACCOUNT_MODEL': 'shop.models.Order',
+        'ACCOUNT_FIELD': 'id',
+        'IS_TEST_MODE': True,
     }
 }
 

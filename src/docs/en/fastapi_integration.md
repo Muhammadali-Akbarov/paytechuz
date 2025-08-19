@@ -161,6 +161,142 @@ click_link = click.create_payment(
     amount=order.amount,
     return_url="https://example.com/return"
 )
+
+# Generate Atmos payment link
+from paytechuz.gateways.atmos import AtmosGateway
+
+atmos = AtmosGateway(
+    consumer_key='your_consumer_key',
+    consumer_secret='your_consumer_secret',
+    store_id='your_store_id',
+    terminal_id='your_terminal_id',  # optional
+    is_test_mode=True  # Set to False in production environment
+)
+
+atmos_payment = atmos.create_payment(
+    account_id=order.id,
+    amount=order.amount
+)
+atmos_link = atmos_payment['payment_url']
+```
+
+## Atmos FastAPI Webhook Integration
+
+### 1. Create Webhook Endpoint
+
+```python
+from fastapi import FastAPI, Request, HTTPException, Depends
+from paytechuz.gateways.atmos.webhook import AtmosWebhookHandler
+from sqlalchemy.orm import Session
+import json
+
+app = FastAPI()
+
+# Atmos webhook handler
+atmos_webhook = AtmosWebhookHandler(api_key="your_atmos_api_key")
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.post("/webhooks/atmos/")
+async def atmos_webhook_endpoint(request: Request, db: Session = Depends(get_db)):
+    """
+    Atmos webhook endpoint
+    """
+    try:
+        # Get request body
+        body = await request.body()
+        webhook_data = json.loads(body.decode('utf-8'))
+
+        # Process webhook
+        response = atmos_webhook.handle_webhook(webhook_data)
+
+        if response['status'] == 1:
+            # Payment successful
+            transaction_id = webhook_data.get('transaction_id')
+            amount = webhook_data.get('amount')
+            invoice = webhook_data.get('invoice')
+
+            # Update order status
+            order = db.query(Order).filter(Order.id == invoice).first()
+            if order:
+                order.status = "paid"
+                db.commit()
+
+                print(f"Order #{order.id} successfully paid")
+            else:
+                print(f"Order not found: {invoice}")
+
+        return response
+
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {
+            'status': 0,
+            'message': f'Error: {str(e)}'
+        }
+
+@app.get("/payment/atmos/{order_id}")
+async def create_atmos_payment(order_id: int, db: Session = Depends(get_db)):
+    """
+    Create Atmos payment endpoint
+    """
+    try:
+        # Find order
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order:
+            raise HTTPException(status_code=404, detail="Order not found")
+
+        # Create Atmos payment
+        atmos = AtmosGateway(
+            consumer_key='your_consumer_key',
+            consumer_secret='your_consumer_secret',
+            store_id='your_store_id',
+            is_test_mode=True
+        )
+
+        payment = atmos.create_payment(
+            account_id=order.id,
+            amount=order.amount
+        )
+
+        return {
+            "payment_url": payment['payment_url'],
+            "transaction_id": payment['transaction_id'],
+            "order_id": order.id,
+            "amount": order.amount
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/payment/status/atmos/{transaction_id}")
+async def check_atmos_payment_status(transaction_id: str):
+    """
+    Check Atmos payment status endpoint
+    """
+    try:
+        atmos = AtmosGateway(
+            consumer_key='your_consumer_key',
+            consumer_secret='your_consumer_secret',
+            store_id='your_store_id',
+            is_test_mode=True
+        )
+
+        status = atmos.check_payment(transaction_id)
+
+        return {
+            "transaction_id": transaction_id,
+            "status": status['status'],
+            "details": status['details']
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 ```
 
 ## Handle Payment Events

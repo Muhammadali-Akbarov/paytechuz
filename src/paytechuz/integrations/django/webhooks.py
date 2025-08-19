@@ -898,3 +898,134 @@ class ClickWebhook(View):
             transaction: Transaction object
         """
         # This method is meant to be overridden by subclasses
+
+
+class AtmosWebhook(View):
+    """
+    Base Atmos webhook handler for Django.
+
+    This class handles webhook requests from the Atmos payment system.
+    You can extend this class and override the event methods to customize
+    the behavior.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        paytechuz_settings = getattr(settings, 'PAYTECHUZ', {})
+        atmos_settings = paytechuz_settings.get('ATMOS', {})
+
+        self.api_key = (
+            atmos_settings.get('API_KEY') or
+            getattr(settings, 'ATMOS_API_KEY', '')
+        )
+
+        account_model_path = (
+            atmos_settings.get('ACCOUNT_MODEL') or
+            getattr(settings, 'ATMOS_ACCOUNT_MODEL', 'django.contrib.auth.models.User')
+        )
+        try:
+            self.account_model = import_string(account_model_path)
+        except ImportError:
+            logger.error(
+                "Could not import %s. Check PAYTECHUZ.ATMOS.ACCOUNT_MODEL setting.",
+                account_model_path
+            )
+            raise ImportError(f"Import error: {account_model_path}") from None
+
+        self.account_field = (
+            atmos_settings.get('ACCOUNT_FIELD') or
+            getattr(settings, 'ATMOS_ACCOUNT_FIELD', 'id')
+        )
+
+    def post(self, request, **_):
+        """
+        Handle POST requests from Atmos.
+        """
+        try:
+            # Parse request data
+            data = json.loads(request.body.decode('utf-8'))
+
+            # Verify signature
+            received_signature = data.get('sign', '')
+            if not self._verify_signature(data, received_signature):
+                logger.error("Invalid webhook signature")
+                return JsonResponse({
+                    'status': 0,
+                    'message': 'Invalid signature'
+                }, status=400)
+
+            # Extract webhook data
+            store_id = data.get('store_id')
+            transaction_id = data.get('transaction_id')
+            amount = data.get('amount')
+            invoice = data.get('invoice')
+            transaction_time = data.get('transaction_time')
+
+            logger.info(f"Webhook received for transaction {transaction_id}, "
+                       f"invoice {invoice}, amount {amount}")
+
+            # Find transaction by invoice (account)
+            try:
+                transaction = PaymentTransaction._default_manager.get(
+                    gateway=PaymentTransaction.ATMOS,
+                    account_id=invoice
+                )
+
+                # Update transaction with webhook data
+                transaction.transaction_id = transaction_id
+                transaction.mark_as_paid()
+
+                # Call the event method
+                self.successfully_payment(data, transaction)
+
+                return JsonResponse({
+                    'status': 1,
+                    'message': 'Успешно'
+                })
+
+            except PaymentTransaction.DoesNotExist:
+                logger.error(f"Transaction not found for invoice: {invoice}")
+                return JsonResponse({
+                    'status': 0,
+                    'message': f'Transaction not found for invoice: {invoice}'
+                }, status=400)
+
+        except Exception as e:
+            logger.exception("Unexpected error in Atmos webhook: %s", e)
+            return JsonResponse({
+                'status': 0,
+                'message': f'Error: {str(e)}'
+            }, status=500)
+
+    def _verify_signature(self, webhook_data, received_signature):
+        """
+        Verify webhook signature from Atmos.
+        """
+        # Extract data from webhook
+        store_id = str(webhook_data.get('store_id', ''))
+        transaction_id = str(webhook_data.get('transaction_id', ''))
+        invoice = str(webhook_data.get('invoice', ''))
+        amount = str(webhook_data.get('amount', ''))
+
+        # Create signature string: store_id+transaction_id+invoice+amount+api_key
+        signature_string = f"{store_id}{transaction_id}{invoice}{amount}{self.api_key}"
+
+        # Generate MD5 hash
+        calculated_signature = hashlib.md5(
+            signature_string.encode('utf-8')).hexdigest()
+
+        # Compare signatures
+        return calculated_signature == received_signature
+
+    # Event methods that can be overridden by subclasses
+
+    def successfully_payment(self, params, transaction):
+        """
+        Called when a payment is successful.
+
+        Args:
+            params: Request parameters
+            transaction: Transaction object
+        """
+        # This method is meant to be overridden by subclasses

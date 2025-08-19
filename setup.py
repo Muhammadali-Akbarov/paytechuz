@@ -8,11 +8,11 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='paytechuz',
-    version='0.2.24',
+    version='0.3.0',
     license='MIT',
     author="Muhammadali Akbarov",
     author_email='muhammadali17abc@gmail.com',
-    description="Unified Python package for Uzbekistan payment gateways",
+    description="Unified Python package for Uzbekistan payment gateways (Payme, Click, Atmos)",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/Muhammadali-Akbarov/paytechuz',
@@ -49,7 +49,7 @@ setup(
     },
 
     keywords=[
-        "paytechuz", "payme", "click", "uzbekistan", "payment", "gateway",
+        "paytechuz", "payme", "click", "atmos", "uzbekistan", "payment", "gateway",
         "payment-gateway", "payment-processing", "django", "flask", "fastapi"
     ],
 

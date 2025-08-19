@@ -16,6 +16,7 @@ class PaymentGateway(Enum):
     """Payment gateway types."""
     PAYME = "payme"
     CLICK = "click"
+    ATMOS = "atmos"
 
 class PaymeEndpoints:
     """Payme API endpoints."""
@@ -66,3 +67,27 @@ class PaymeCancelReason:
     REASON_CANCELLED_BY_USER = 7
     REASON_SUSPICIOUS_OPERATION = 8
     REASON_MERCHANT_DECISION = 9
+
+
+class AtmosEndpoints:
+    """Atmos API endpoints."""
+    TOKEN = "/token"
+    CREATE_PAYMENT = "/merchant/pay/create"
+    CHECK_PAYMENT = "/merchant/pay/get-status"
+    CANCEL_PAYMENT = "/merchant/pay/cancel"
+
+
+class AtmosNetworks:
+    """Atmos API networks."""
+    PROD_NET = "https://partner.atmos.uz"
+    TEST_CHECKOUT = "https://test-checkout.pays.uz/invoice/get"
+    PROD_CHECKOUT = "https://checkout.pays.uz/invoice/get"
+
+
+class AtmosTransactionStatus:
+    """Atmos transaction status codes."""
+    CREATED = "created"
+    PENDING = "pending"
+    SUCCESS = "success"
+    FAILED = "failed"
+    CANCELLED = "cancelled"

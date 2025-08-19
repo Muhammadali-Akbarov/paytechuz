@@ -1,6 +1,6 @@
 # PayTech UZ Django - Order Creation API
 
-Simple Django REST API for creating orders with Payme and Click payment integration.
+Simple Django REST API for creating orders with Payme, Click, and Atmos payment integration.
 
 ## Setup
 
@@ -48,6 +48,7 @@ python manage.py runserver
 ### Payment Types
 - `payme` - Payme payment gateway
 - `click` - Click payment gateway
+- `atmos` - Atmos payment gateway
 
 ## cURL Examples
 
@@ -73,6 +74,17 @@ curl -X POST http://127.0.0.1:8000/api/orders/create \
   }'
 ```
 
+**Atmos:**
+```bash
+curl -X POST http://127.0.0.1:8000/api/orders/create \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_name": "Test Product",
+    "amount": "100.00",
+    "payment_type": "atmos"
+  }'
+```
+
 ## Configuration
 
 Update `backend/settings.py` with your payment gateway credentials:
@@ -90,6 +102,14 @@ PAYTECHUZ = {
         'MERCHANT_USER_ID': 'your_merchant_user_id',
         'SECRET_KEY': 'your_secret_key',
         'IS_TEST_MODE': True,
+    },
+    'ATMOS': {
+        'CONSUMER_KEY': 'your_atmos_consumer_key',
+        'CONSUMER_SECRET': 'your_atmos_consumer_secret',
+        'STORE_ID': 'your_atmos_store_id',
+        'TERMINAL_ID': 'your_atmos_terminal_id',  # Optional
+        'API_KEY': 'your_atmos_api_key',
+        'IS_TEST_MODE': True,
     }
 }
 ```
@@ -99,6 +119,8 @@ PAYTECHUZ = {
 - ✅ Order creation with payment integration
 - ✅ Payme payment gateway support
 - ✅ Click payment gateway support
+- ✅ Atmos payment gateway support
 - ✅ REST API with JSON responses
 - ✅ Input validation
 - ✅ Error handling
+- ✅ Webhook handlers for all payment gateways

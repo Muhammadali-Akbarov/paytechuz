@@ -12,10 +12,12 @@ class PaymentTransaction(models.Model):
     # Payment gateway choices
     PAYME = 'payme'
     CLICK = 'click'
+    ATMOS = 'atmos'
 
     GATEWAY_CHOICES = [
         (PAYME, 'Payme'),
         (CLICK, 'Click'),
+        (ATMOS, 'Atmos'),
     ]
 
     # Transaction states

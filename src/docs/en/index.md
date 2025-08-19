@@ -1,15 +1,16 @@
 # PayTechUZ Documentation
 
-Welcome to the PayTechUZ documentation. PayTechUZ is a unified payment library for integration with popular payment systems in Uzbekistan (Payme and Click).
+Welcome to the PayTechUZ documentation. PayTechUZ is a unified payment library for integration with popular payment systems in Uzbekistan (Payme, Click, and Atmos).
 
 ## Available Integrations
 
 - [Django Integration](django_integration.md)
 - [FastAPI Integration](fastapi_integration.md)
+- [Atmos Integration](atmos_integration.md)
 
 ## Features
 
-- Support for Payme and Click payment systems
+- Support for Payme, Click, and Atmos payment systems
 - Easy integration with Django and FastAPI
 - Customizable webhook handlers
 - Automatic transaction management

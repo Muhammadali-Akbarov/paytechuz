@@ -1,15 +1,16 @@
 # PayTechUZ Hujjatlari
 
-PayTechUZ hujjatlariga xush kelibsiz. PayTechUZ - O'zbekistondagi mashhur to'lov tizimlari (Payme va Click) bilan integratsiya qilish uchun yagona to'lov kutubxonasi.
+PayTechUZ hujjatlariga xush kelibsiz. PayTechUZ - O'zbekistondagi mashhur to'lov tizimlari (Payme, Click va Atmos) bilan integratsiya qilish uchun yagona to'lov kutubxonasi.
 
 ## Mavjud integratsiyalar
 
 - [Django integratsiyasi](django_integration.md)
 - [FastAPI integratsiyasi](fastapi_integration.md)
+- [Atmos integratsiyasi](atmos_integration.md)
 
 ## Imkoniyatlar
 
-- Payme va Click to'lov tizimlarini qo'llab-quvvatlash
+- Payme, Click va Atmos to'lov tizimlarini qo'llab-quvvatlash
 - Django va FastAPI bilan oson integratsiya
 - Moslashtirilgan webhook obrabotchiklari
 - Avtomatik tranzaksiyalarni boshqarish

@@ -11,6 +11,8 @@ from app.typing import (
 
 from paytechuz.gateways.payme import PaymeGateway
 from paytechuz.gateways.click import ClickGateway
+from paytechuz.gateways.atmos import AtmosGateway
+from paytechuz.gateways.atmos.webhook import AtmosWebhookHandler
 
 app = FastAPI()
 
@@ -30,6 +32,14 @@ click = ClickGateway(
     is_test_mode=True  # Set to False in production environment
 )
 
+atmos = AtmosGateway(
+    consumer_key="your_atmos_consumer_key",
+    consumer_secret="your_atmos_consumer_secret",
+    store_id="your_atmos_store_id",
+    terminal_id="your_atmos_terminal_id",  # Optional
+    is_test_mode=True  # Set to False in production environment
+)
+
 
 def get_db():
     db = SessionLocal()
@@ -42,8 +52,8 @@ def get_db():
 @app.post("/orders/", response_model=OrderResponse)
 async def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     """Create a new order with payment link"""
-    if order_data.payment_method.lower() not in ["payme", "click"]:
-        raise HTTPException(status_code=400, detail="Invalid payment method. Use 'payme' or 'click'")
+    if order_data.payment_method.lower() not in ["payme", "click", "atmos"]:
+        raise HTTPException(status_code=400, detail="Invalid payment method. Use 'payme', 'click', or 'atmos'")
     
     db_order = Order(
         product_name=order_data.product_name,
@@ -60,13 +70,19 @@ async def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
             amount=int(db_order.amount * 100),  # Convert to smallest currency unit
             return_url=order_data.return_url
         )
-    else:  # click
+    elif order_data.payment_method.lower() == "click":
         payment_link = click.create_payment(
             id=str(db_order.id),
             amount=int(db_order.amount * 100),  # Convert to smallest currency unit
             description=db_order.product_name,
             return_url=order_data.return_url
         )
+    else:  # atmos
+        payment_result = atmos.create_payment(
+            account_id=str(db_order.id),
+            amount=int(db_order.amount * 100)  # Convert to smallest currency unit
+        )
+        payment_link = payment_result.get("payment_url")
     
     return OrderResponse(
         id=db_order.id,
@@ -101,3 +117,37 @@ async def click_webhook(request: Request, db: Session = Depends(get_db)):
         account_model=Order
     )
     return await handler.handle_webhook(request)
+
+
+@app.post("/payments/atmos/webhook")
+async def atmos_webhook(request: Request, db: Session = Depends(get_db)):
+    import json
+
+    # Atmos webhook handler
+    atmos_handler = AtmosWebhookHandler(api_key="your_atmos_api_key")
+
+    try:
+        # Get request body
+        body = await request.body()
+        webhook_data = json.loads(body.decode('utf-8'))
+
+        # Process webhook
+        response = atmos_handler.handle_webhook(webhook_data)
+
+        if response['status'] == 1:
+            # Payment successful
+            invoice = webhook_data.get('invoice')
+
+            # Update order status
+            order = db.query(Order).filter(Order.id == invoice).first()
+            if order:
+                order.status = "paid"
+                db.commit()
+
+        return response
+
+    except Exception as e:
+        return {
+            'status': 0,
+            'message': f'Error: {str(e)}'
+        }

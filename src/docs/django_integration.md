@@ -168,4 +168,106 @@ click_link = click.create_payment(
     return_url="https://example.com/return",
     description="Buyurtma uchun to'lov"
 )
+
+# Atmos to'lov linkini yaratish
+from paytechuz.gateways.atmos import AtmosGateway
+
+atmos = AtmosGateway(
+    consumer_key='sizning_consumer_key',
+    consumer_secret='sizning_consumer_secret',
+    store_id='sizning_store_id',
+    terminal_id='sizning_terminal_id',  # ixtiyoriy
+    is_test_mode=True  # Ishlab chiqarish (production) muhitida False qiymatini bering
+)
+
+atmos_payment = atmos.create_payment(
+    account_id=order.id,
+    amount=order.amount
+)
+atmos_link = atmos_payment['payment_url']
+```
+
+## Atmos Django Webhook Integration
+
+### 1. Settings.py konfiguratsiyasi
+
+```python
+# settings.py
+PAYTECHUZ = {
+    'ATMOS': {
+        'CONSUMER_KEY': 'sizning_atmos_consumer_key',
+        'CONSUMER_SECRET': 'sizning_atmos_consumer_secret',
+        'STORE_ID': 'sizning_atmos_store_id',
+        'TERMINAL_ID': 'sizning_atmos_terminal_id',  # Ixtiyoriy
+        'API_KEY': 'sizning_atmos_api_key',  # Webhook imzo tekshirish uchun
+        'ACCOUNT_MODEL': 'myapp.models.Order',  # Buyurtma modeli
+        'ACCOUNT_FIELD': 'id',  # Buyurtma ID maydoni
+        'IS_TEST_MODE': True,  # Production muhitida False qiling
+    }
+}
+```
+
+### 2. Webhook View yaratish
+
+```python
+# views.py
+from paytechuz.integrations.django.views import BaseAtmosWebhookView
+from .models import Order
+
+class AtmosWebhookView(BaseAtmosWebhookView):
+    """
+    Atmos webhook uchun maxsus view.
+    """
+
+    def successfully_payment(self, params, transaction):
+        """
+        To'lov muvaffaqiyatli amalga oshirilganda chaqiriladi.
+        """
+        try:
+            # Buyurtma holatini yangilash
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+
+            print(f"Buyurtma #{order.id} muvaffaqiyatli to'landi")
+
+            # Email yuborish, SMS jo'natish va boshqa amallar
+            # send_payment_confirmation_email(order)
+
+        except Order.DoesNotExist:
+            print(f"Buyurtma topilmadi: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """
+        To'lov bekor qilinganda chaqiriladi.
+        """
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+
+            print(f"Buyurtma #{order.id} bekor qilindi")
+
+        except Order.DoesNotExist:
+            print(f"Buyurtma topilmadi: {transaction.account_id}")
+```
+
+### 3. URL konfiguratsiyasi
+
+```python
+# urls.py
+from django.urls import path
+from .views import AtmosWebhookView
+
+urlpatterns = [
+    # ...
+    path('webhooks/atmos/', AtmosWebhookView.as_view(), name='atmos_webhook'),
+]
+```
+
+### 4. Atmos admin panelida webhook URL ni sozlash
+
+Atmos admin panelingizda webhook URL ni quyidagicha sozlang:
+```
+https://yourdomain.com/webhooks/atmos/
 ```

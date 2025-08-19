@@ -169,4 +169,106 @@ click_link = click.create_payment(
     return_url="https://example.com/return",
     description="Payment for order"
 )
+
+# Generate Atmos payment link
+from paytechuz.gateways.atmos import AtmosGateway
+
+atmos = AtmosGateway(
+    consumer_key='your_consumer_key',
+    consumer_secret='your_consumer_secret',
+    store_id='your_store_id',
+    terminal_id='your_terminal_id',  # optional
+    is_test_mode=True  # Set to False in production environment
+)
+
+atmos_payment = atmos.create_payment(
+    account_id=order.id,
+    amount=order.amount
+)
+atmos_link = atmos_payment['payment_url']
+```
+
+## Atmos Django Webhook Integration
+
+### 1. Settings.py Configuration
+
+```python
+# settings.py
+PAYTECHUZ = {
+    'ATMOS': {
+        'CONSUMER_KEY': 'your_atmos_consumer_key',
+        'CONSUMER_SECRET': 'your_atmos_consumer_secret',
+        'STORE_ID': 'your_atmos_store_id',
+        'TERMINAL_ID': 'your_atmos_terminal_id',  # Optional
+        'API_KEY': 'your_atmos_api_key',  # For webhook signature verification
+        'ACCOUNT_MODEL': 'myapp.models.Order',  # Order model
+        'ACCOUNT_FIELD': 'id',  # Order ID field
+        'IS_TEST_MODE': True,  # Set to False in production
+    }
+}
+```
+
+### 2. Create Webhook View
+
+```python
+# views.py
+from paytechuz.integrations.django.views import BaseAtmosWebhookView
+from .models import Order
+
+class AtmosWebhookView(BaseAtmosWebhookView):
+    """
+    Custom webhook view for Atmos.
+    """
+
+    def successfully_payment(self, params, transaction):
+        """
+        Called when payment is successfully completed.
+        """
+        try:
+            # Update order status
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+
+            print(f"Order #{order.id} successfully paid")
+
+            # Send email, SMS and other actions
+            # send_payment_confirmation_email(order)
+
+        except Order.DoesNotExist:
+            print(f"Order not found: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """
+        Called when payment is cancelled.
+        """
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+
+            print(f"Order #{order.id} cancelled")
+
+        except Order.DoesNotExist:
+            print(f"Order not found: {transaction.account_id}")
+```
+
+### 3. URL Configuration
+
+```python
+# urls.py
+from django.urls import path
+from .views import AtmosWebhookView
+
+urlpatterns = [
+    # ...
+    path('webhooks/atmos/', AtmosWebhookView.as_view(), name='atmos_webhook'),
+]
+```
+
+### 4. Configure webhook URL in Atmos admin panel
+
+Set webhook URL in your Atmos admin panel:
+```
+https://yourdomain.com/webhooks/atmos/
 ```
