@@ -1,8 +1,10 @@
 # PayTechUZ Django Integration
 
+PayTechUZ library provides full integration with Django and supports Payme, Click, and Atmos payment systems.
+
 ## Installation
 
-1. Install the library:
+1. Install the library with Django support:
 
 ```bash
 pip install paytechuz[django]
@@ -60,215 +62,258 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-## Basic Configuration
+## Settings Configuration
 
-Add the following settings to your `settings.py` file:
-
-```python
-# Payme settings
-PAYME_ID = 'your_payme_merchant_id'
-PAYME_KEY = 'your_payme_merchant_key'
-PAYME_ACCOUNT_MODEL = 'your_app.Order'  # For example: 'orders.Order'
-PAYME_ACCOUNT_FIELD = 'id'
-PAYME_AMOUNT_FIELD = 'amount'
-
-# Click settings
-CLICK_SERVICE_ID = 'your_click_service_id'
-CLICK_MERCHANT_ID = 'your_click_merchant_id'
-CLICK_SECRET_KEY = 'your_click_secret_key'
-CLICK_ACCOUNT_MODEL = 'your_app.Order'
-```
-
-## Configure URLs
-
-```python
-# urls.py
-from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
-from paytechuz.integrations.django.views import PaymeWebhookView, ClickWebhookView
-
-urlpatterns = [
-    # ...
-    path('payments/payme/', csrf_exempt(PaymeWebhookView.as_view()), name='payme_webhook'),
-    path('payments/click/', csrf_exempt(ClickWebhookView.as_view()), name='click_webhook'),
-]
-```
-
-## Handle Payment Events
-
-```python
-# views.py
-from paytechuz.integrations.django.views import PaymeWebhookView as BasePaymeWebhookView
-from paytechuz.integrations.django.views import ClickWebhookView as BaseClickWebhookView
-from .models import Order
-
-class PaymeWebhookView(BasePaymeWebhookView):
-    def successfully_payment(self, params, transaction):
-        """Called when payment is successful"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'paid'
-        order.save()
-
-    def cancelled_payment(self, params, transaction):
-        """Called when payment is cancelled"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'cancelled'
-        order.save()
-
-class ClickWebhookView(BaseClickWebhookView):
-    def successfully_payment(self, params, transaction):
-        """Called when payment is successful"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'paid'
-        order.save()
-
-    def cancelled_payment(self, params, transaction):
-        """Called when payment is cancelled"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'cancelled'
-        order.save()
-```
-
-## Create Payment Links
-
-```python
-from paytechuz.gateways.payme import PaymeGateway
-from paytechuz.gateways.click import ClickGateway
-
-# Get the order
-order = Order.objects.get(id=1)
-
-# Generate Payme payment link
-payme = PaymeGateway(
-    payme_id='your_payme_id',
-    payme_key='your_payme_key',
-    is_test_mode=True  # Set to False in production environment
-)
-payme_link = payme.create_payment(
-    id=order.id,
-    amount=order.amount,
-    return_url="https://example.com/return"
-)
-
-# Generate Click payment link
-click = ClickGateway(
-    service_id='your_service_id',
-    merchant_id='your_merchant_id',
-    merchant_user_id='your_merchant_user_id',
-    secret_key='your_secret_key',
-    is_test_mode=True  # Set to False in production environment
-)
-# Click.create_payment() directly returns the payment URL
-click_link = click.create_payment(
-    id=order.id,
-    amount=order.amount,
-    return_url="https://example.com/return",
-    description="Payment for order"
-)
-
-# Generate Atmos payment link
-from paytechuz.gateways.atmos import AtmosGateway
-
-atmos = AtmosGateway(
-    consumer_key='your_consumer_key',
-    consumer_secret='your_consumer_secret',
-    store_id='your_store_id',
-    terminal_id='your_terminal_id',  # optional
-    is_test_mode=True  # Set to False in production environment
-)
-
-atmos_payment = atmos.create_payment(
-    account_id=order.id,
-    amount=order.amount
-)
-atmos_link = atmos_payment['payment_url']
-```
-
-## Atmos Django Webhook Integration
-
-### 1. Settings.py Configuration
+Add PAYTECHUZ settings to your `settings.py` file. Use the unified configuration format for all payment systems:
 
 ```python
 # settings.py
 PAYTECHUZ = {
+    'PAYME': {
+        'PAYME_ID': 'your_payme_merchant_id',
+        'PAYME_KEY': 'your_payme_merchant_key',
+        'ACCOUNT_MODEL': 'your_app.models.Order',  # Example: 'shop.models.Order'
+        'ACCOUNT_FIELD': 'id',
+        'AMOUNT_FIELD': 'amount',
+        'ONE_TIME_PAYMENT': True,
+        'IS_TEST_MODE': True,  # Set to False in production
+    },
+    'CLICK': {
+        'SERVICE_ID': 'your_click_service_id',
+        'MERCHANT_ID': 'your_click_merchant_id',
+        'MERCHANT_USER_ID': 'your_click_merchant_user_id',
+        'SECRET_KEY': 'your_click_secret_key',
+        'ACCOUNT_MODEL': 'your_app.models.Order',
+        'COMMISSION_PERCENT': 0.0,
+        'IS_TEST_MODE': True,  # Set to False in production
+    },
     'ATMOS': {
         'CONSUMER_KEY': 'your_atmos_consumer_key',
         'CONSUMER_SECRET': 'your_atmos_consumer_secret',
         'STORE_ID': 'your_atmos_store_id',
         'TERMINAL_ID': 'your_atmos_terminal_id',  # Optional
         'API_KEY': 'your_atmos_api_key',  # For webhook signature verification
-        'ACCOUNT_MODEL': 'myapp.models.Order',  # Order model
-        'ACCOUNT_FIELD': 'id',  # Order ID field
+        'ACCOUNT_MODEL': 'your_app.models.Order',
+        'ACCOUNT_FIELD': 'id',
         'IS_TEST_MODE': True,  # Set to False in production
     }
 }
 ```
 
-### 2. Create Webhook View
+## Configure URLs
 
-```python
-# views.py
-from paytechuz.integrations.django.views import BaseAtmosWebhookView
-from .models import Order
-
-class AtmosWebhookView(BaseAtmosWebhookView):
-    """
-    Custom webhook view for Atmos.
-    """
-
-    def successfully_payment(self, params, transaction):
-        """
-        Called when payment is successfully completed.
-        """
-        try:
-            # Update order status
-            order = Order.objects.get(id=transaction.account_id)
-            order.status = 'paid'
-            order.save()
-
-            print(f"Order #{order.id} successfully paid")
-
-            # Send email, SMS and other actions
-            # send_payment_confirmation_email(order)
-
-        except Order.DoesNotExist:
-            print(f"Order not found: {transaction.account_id}")
-
-    def cancelled_payment(self, params, transaction):
-        """
-        Called when payment is cancelled.
-        """
-        try:
-            order = Order.objects.get(id=transaction.account_id)
-            order.status = 'cancelled'
-            order.save()
-
-            print(f"Order #{order.id} cancelled")
-
-        except Order.DoesNotExist:
-            print(f"Order not found: {transaction.account_id}")
-```
-
-### 3. URL Configuration
+Add webhook URLs to your project's main `urls.py` file:
 
 ```python
 # urls.py
 from django.urls import path
-from .views import AtmosWebhookView
+from .views import PaymeWebhookView, ClickWebhookView, AtmosWebhookView
 
 urlpatterns = [
     # ...
+    # PayTechUZ webhook URLs
+    path('webhooks/payme/', PaymeWebhookView.as_view(), name='payme_webhook'),
+    path('webhooks/click/', ClickWebhookView.as_view(), name='click_webhook'),
     path('webhooks/atmos/', AtmosWebhookView.as_view(), name='atmos_webhook'),
 ]
 ```
 
-### 4. Configure webhook URL in Atmos admin panel
+## Create Webhook Views
 
-Set webhook URL in your Atmos admin panel:
+Create custom webhook views for each payment system:
+
+```python
+# views.py
+from paytechuz.integrations.django.views import (
+    BasePaymeWebhookView,
+    BaseClickWebhookView,
+    BaseAtmosWebhookView
+)
+from .models import Order
+import logging
+
+logger = logging.getLogger(__name__)
+
+class PaymeWebhookView(BasePaymeWebhookView):
+    """Custom webhook view for Payme"""
+
+    def successfully_payment(self, params, transaction):
+        """Called when payment is successful"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Payme: Order #{order.id} successfully paid")
+        except Order.DoesNotExist:
+            logger.error(f"Payme: Order not found: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """Called when payment is cancelled"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+            logger.info(f"Payme: Order #{order.id} cancelled")
+        except Order.DoesNotExist:
+            logger.error(f"Payme: Order not found: {transaction.account_id}")
+
+class ClickWebhookView(BaseClickWebhookView):
+    """Custom webhook view for Click"""
+
+    def successfully_payment(self, params, transaction):
+        """Called when payment is successful"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Click: Order #{order.id} successfully paid")
+        except Order.DoesNotExist:
+            logger.error(f"Click: Order not found: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """Called when payment is cancelled"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+            logger.info(f"Click: Order #{order.id} cancelled")
+        except Order.DoesNotExist:
+            logger.error(f"Click: Order not found: {transaction.account_id}")
+
+class AtmosWebhookView(BaseAtmosWebhookView):
+    """Custom webhook view for Atmos"""
+
+    def successfully_payment(self, params, transaction):
+        """Called when payment is successful"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Atmos: Order #{order.id} successfully paid")
+        except Order.DoesNotExist:
+            logger.error(f"Atmos: Order not found: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """Called when payment is cancelled"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+            logger.info(f"Atmos: Order #{order.id} cancelled")
+        except Order.DoesNotExist:
+            logger.error(f"Atmos: Order not found: {transaction.account_id}")
+```
+
+## Create Payment Links
+
+Example of creating payment links in a Django view:
+
+```python
+# views.py
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.conf import settings
+from paytechuz.gateways.payme import PaymeGateway
+from paytechuz.gateways.click import ClickGateway
+from paytechuz.gateways.atmos import AtmosGateway
+from .models import Order
+
+def create_payment_link(request, order_id):
+    """Create payment link for an order"""
+    order = get_object_or_404(Order, id=order_id)
+    payment_method = request.GET.get('method', 'payme')  # payme, click, atmos
+
+    try:
+        if payment_method == 'payme':
+            # Create Payme payment link
+            payme_config = settings.PAYTECHUZ['PAYME']
+            payme = PaymeGateway(
+                payme_id=payme_config['PAYME_ID'],
+                payme_key=payme_config['PAYME_KEY'],
+                is_test_mode=payme_config.get('IS_TEST_MODE', True)
+            )
+            payment_link = payme.create_payment(
+                id=order.id,
+                amount=int(order.amount * 100),  # Payme works with tiyin
+                return_url=request.build_absolute_uri('/payment/success/')
+            )
+
+        elif payment_method == 'click':
+            # Create Click payment link
+            click_config = settings.PAYTECHUZ['CLICK']
+            click = ClickGateway(
+                service_id=click_config['SERVICE_ID'],
+                merchant_id=click_config['MERCHANT_ID'],
+                merchant_user_id=click_config['MERCHANT_USER_ID'],
+                secret_key=click_config['SECRET_KEY'],
+                is_test_mode=click_config.get('IS_TEST_MODE', True)
+            )
+            payment_link = click.create_payment(
+                id=order.id,
+                amount=order.amount,
+                return_url=request.build_absolute_uri('/payment/success/'),
+                description=f"Payment for order #{order.id}"
+            )
+
+        elif payment_method == 'atmos':
+            # Create Atmos payment link
+            atmos_config = settings.PAYTECHUZ['ATMOS']
+            atmos = AtmosGateway(
+                consumer_key=atmos_config['CONSUMER_KEY'],
+                consumer_secret=atmos_config['CONSUMER_SECRET'],
+                store_id=atmos_config['STORE_ID'],
+                terminal_id=atmos_config.get('TERMINAL_ID'),
+                is_test_mode=atmos_config.get('IS_TEST_MODE', True)
+            )
+            atmos_payment = atmos.create_payment(
+                account_id=order.id,
+                amount=int(order.amount * 100)  # Atmos works with tiyin
+            )
+            payment_link = atmos_payment['payment_url']
+
+        else:
+            return JsonResponse({'error': 'Invalid payment method'}, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'payment_url': payment_link,
+            'order_id': order.id,
+            'amount': order.amount,
+            'method': payment_method
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+def payment_success(request):
+    """Called when payment is successful"""
+    return render(request, 'payment/success.html')
+```
+
+## Configure Webhook URLs
+
+Set webhook URLs in the payment systems' admin panels:
+
+### Payme
+```
+https://yourdomain.com/webhooks/payme/
+```
+
+### Click
+```
+https://yourdomain.com/webhooks/click/
+```
+
+### Atmos
 ```
 https://yourdomain.com/webhooks/atmos/
 ```
+
+## Additional Information
+
+- [Detailed Atmos integration guide](atmos_integration.md)
+- [FastAPI integration](fastapi_integration.md)
+- [PayTechUZ GitHub repository](https://github.com/PayTechUz/paytechuz)

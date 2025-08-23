@@ -1,8 +1,10 @@
 # PayTechUZ Django Integratsiyasi
 
+PayTechUZ kutubxonasi Django bilan to'liq integratsiyani ta'minlaydi va Payme, Click, va Atmos to'lov tizimlarini qo'llab-quvvatlaydi.
+
 ## O'rnatish
 
-1. Kutubxonani o'rnating:
+1. Kutubxonani Django qo'llab-quvvatlash bilan o'rnating:
 
 ```bash
 pip install paytechuz[django]
@@ -60,214 +62,257 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-## Asosiy sozlamalar
+## Sozlamalar konfiguratsiyasi
 
-`settings.py` faylingizga quyidagi sozlamalarni qo'shing:
-
-```python
-# Payme sozlamalari
-PAYME_ID = 'your_payme_merchant_id'
-PAYME_KEY = 'your_payme_merchant_key'
-PAYME_ACCOUNT_MODEL = 'your_app.Order'  # Masalan: 'orders.Order'
-PAYME_ACCOUNT_FIELD = 'id'
-PAYME_AMOUNT_FIELD = 'amount'
-
-# Click sozlamalari
-CLICK_SERVICE_ID = 'your_click_service_id'
-CLICK_MERCHANT_ID = 'your_click_merchant_id'
-CLICK_SECRET_KEY = 'your_click_secret_key'
-CLICK_ACCOUNT_MODEL = 'your_app.Order'
-```
-
-## URL'larni sozlash
-
-```python
-# urls.py
-from django.urls import path
-from django.views.decorators.csrf import csrf_exempt
-from paytechuz.integrations.django.views import PaymeWebhookView, ClickWebhookView
-
-urlpatterns = [
-    # ...
-    path('payments/payme/', csrf_exempt(PaymeWebhookView.as_view()), name='payme_webhook'),
-    path('payments/click/', csrf_exempt(ClickWebhookView.as_view()), name='click_webhook'),
-]
-```
-
-## To'lov hodisalarini boshqarish
-
-```python
-# views.py
-from paytechuz.integrations.django.views import PaymeWebhookView as BasePaymeWebhookView
-from paytechuz.integrations.django.views import ClickWebhookView as BaseClickWebhookView
-from .models import Order
-
-class PaymeWebhookView(BasePaymeWebhookView):
-    def successfully_payment(self, params, transaction):
-        """To'lov muvaffaqiyatli bo'lganda chaqiriladi"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'paid'
-        order.save()
-
-    def cancelled_payment(self, params, transaction):
-        """To'lov bekor qilinganda chaqiriladi"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'cancelled'
-        order.save()
-
-class ClickWebhookView(BaseClickWebhookView):
-    def successfully_payment(self, params, transaction):
-        """To'lov muvaffaqiyatli bo'lganda chaqiriladi"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'paid'
-        order.save()
-
-    def cancelled_payment(self, params, transaction):
-        """To'lov bekor qilinganda chaqiriladi"""
-        order_id = transaction.account_id
-        order = Order.objects.get(id=order_id)
-        order.status = 'cancelled'
-        order.save()
-```
-
-## To'lov uchun link yaratish
-```python
-from paytechuz.gateways.payme import PaymeGateway
-from paytechuz.gateways.click import ClickGateway
-
-# Buyurtmani olish
-order = Order.objects.get(id=1)
-
-# Payme to'lov linkini yaratish
-payme = PaymeGateway(
-    payme_id='sizning_payme_id',
-    payme_key='sizning_payme_key',
-    is_test_mode=True  # Ishlab chiqarish (production) muhitida False qiymatini bering
-)
-payme_link = payme.create_payment(
-    id=order.id,
-    amount=order.amount,
-    return_url="https://example.com/return"
-)
-
-# Click to'lov linkini yaratish
-click = ClickGateway(
-    service_id='sizning_service_id',
-    merchant_id='sizning_merchant_id',
-    merchant_user_id='sizning_merchant_user_id',
-    secret_key='sizning_secret_key',
-    is_test_mode=True  # Ishlab chiqarish (production) muhitida False qiymatini bering
-)
-# Click.create_payment() to'g'ridan-to'g'ri to'lov linkini qaytaradi
-click_link = click.create_payment(
-    id=order.id,
-    amount=order.amount,
-    return_url="https://example.com/return",
-    description="Buyurtma uchun to'lov"
-)
-
-# Atmos to'lov linkini yaratish
-from paytechuz.gateways.atmos import AtmosGateway
-
-atmos = AtmosGateway(
-    consumer_key='sizning_consumer_key',
-    consumer_secret='sizning_consumer_secret',
-    store_id='sizning_store_id',
-    terminal_id='sizning_terminal_id',  # ixtiyoriy
-    is_test_mode=True  # Ishlab chiqarish (production) muhitida False qiymatini bering
-)
-
-atmos_payment = atmos.create_payment(
-    account_id=order.id,
-    amount=order.amount
-)
-atmos_link = atmos_payment['payment_url']
-```
-
-## Atmos Django Webhook Integration
-
-### 1. Settings.py konfiguratsiyasi
+`settings.py` faylingizga PAYTECHUZ sozlamalarini qo'shing. Barcha to'lov tizimlari uchun yagona konfiguratsiya formatidan foydalaning:
 
 ```python
 # settings.py
 PAYTECHUZ = {
+    'PAYME': {
+        'PAYME_ID': 'your_payme_merchant_id',
+        'PAYME_KEY': 'your_payme_merchant_key',
+        'ACCOUNT_MODEL': 'your_app.models.Order',  # Masalan: 'shop.models.Order'
+        'ACCOUNT_FIELD': 'id',
+        'AMOUNT_FIELD': 'amount',
+        'ONE_TIME_PAYMENT': True,
+        'IS_TEST_MODE': True,  # Production muhitida False qiling
+    },
+    'CLICK': {
+        'SERVICE_ID': 'your_click_service_id',
+        'MERCHANT_ID': 'your_click_merchant_id',
+        'MERCHANT_USER_ID': 'your_click_merchant_user_id',
+        'SECRET_KEY': 'your_click_secret_key',
+        'ACCOUNT_MODEL': 'your_app.models.Order',
+        'COMMISSION_PERCENT': 0.0,
+        'IS_TEST_MODE': True,  # Production muhitida False qiling
+    },
     'ATMOS': {
-        'CONSUMER_KEY': 'sizning_atmos_consumer_key',
-        'CONSUMER_SECRET': 'sizning_atmos_consumer_secret',
-        'STORE_ID': 'sizning_atmos_store_id',
-        'TERMINAL_ID': 'sizning_atmos_terminal_id',  # Ixtiyoriy
-        'API_KEY': 'sizning_atmos_api_key',  # Webhook imzo tekshirish uchun
-        'ACCOUNT_MODEL': 'myapp.models.Order',  # Buyurtma modeli
-        'ACCOUNT_FIELD': 'id',  # Buyurtma ID maydoni
+        'CONSUMER_KEY': 'your_atmos_consumer_key',
+        'CONSUMER_SECRET': 'your_atmos_consumer_secret',
+        'STORE_ID': 'your_atmos_store_id',
+        'TERMINAL_ID': 'your_atmos_terminal_id',  # Ixtiyoriy
+        'API_KEY': 'your_atmos_api_key',  # Webhook imzo tekshirish uchun
+        'ACCOUNT_MODEL': 'your_app.models.Order',
+        'ACCOUNT_FIELD': 'id',
         'IS_TEST_MODE': True,  # Production muhitida False qiling
     }
 }
 ```
 
-### 2. Webhook View yaratish
+## URL'larni sozlash
 
-```python
-# views.py
-from paytechuz.integrations.django.views import BaseAtmosWebhookView
-from .models import Order
-
-class AtmosWebhookView(BaseAtmosWebhookView):
-    """
-    Atmos webhook uchun maxsus view.
-    """
-
-    def successfully_payment(self, params, transaction):
-        """
-        To'lov muvaffaqiyatli amalga oshirilganda chaqiriladi.
-        """
-        try:
-            # Buyurtma holatini yangilash
-            order = Order.objects.get(id=transaction.account_id)
-            order.status = 'paid'
-            order.save()
-
-            print(f"Buyurtma #{order.id} muvaffaqiyatli to'landi")
-
-            # Email yuborish, SMS jo'natish va boshqa amallar
-            # send_payment_confirmation_email(order)
-
-        except Order.DoesNotExist:
-            print(f"Buyurtma topilmadi: {transaction.account_id}")
-
-    def cancelled_payment(self, params, transaction):
-        """
-        To'lov bekor qilinganda chaqiriladi.
-        """
-        try:
-            order = Order.objects.get(id=transaction.account_id)
-            order.status = 'cancelled'
-            order.save()
-
-            print(f"Buyurtma #{order.id} bekor qilindi")
-
-        except Order.DoesNotExist:
-            print(f"Buyurtma topilmadi: {transaction.account_id}")
-```
-
-### 3. URL konfiguratsiyasi
+Webhook URL'larini loyihangizning asosiy `urls.py` fayliga qo'shing:
 
 ```python
 # urls.py
 from django.urls import path
-from .views import AtmosWebhookView
+from .views import PaymeWebhookView, ClickWebhookView, AtmosWebhookView
 
 urlpatterns = [
     # ...
+    # PayTechUZ webhook URL'lari
+    path('webhooks/payme/', PaymeWebhookView.as_view(), name='payme_webhook'),
+    path('webhooks/click/', ClickWebhookView.as_view(), name='click_webhook'),
     path('webhooks/atmos/', AtmosWebhookView.as_view(), name='atmos_webhook'),
 ]
 ```
 
-### 4. Atmos admin panelida webhook URL ni sozlash
+## Webhook View'larini yaratish
 
-Atmos admin panelingizda webhook URL ni quyidagicha sozlang:
+Har bir to'lov tizimi uchun maxsus webhook view'larini yarating:
+
+```python
+# views.py
+from paytechuz.integrations.django.views import (
+    BasePaymeWebhookView,
+    BaseClickWebhookView,
+    BaseAtmosWebhookView
+)
+from .models import Order
+import logging
+
+logger = logging.getLogger(__name__)
+
+class PaymeWebhookView(BasePaymeWebhookView):
+    """Payme webhook uchun maxsus view"""
+
+    def successfully_payment(self, params, transaction):
+        """To'lov muvaffaqiyatli bo'lganda chaqiriladi"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Payme: Buyurtma #{order.id} muvaffaqiyatli to'landi")
+        except Order.DoesNotExist:
+            logger.error(f"Payme: Buyurtma topilmadi: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """To'lov bekor qilinganda chaqiriladi"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+            logger.info(f"Payme: Buyurtma #{order.id} bekor qilindi")
+        except Order.DoesNotExist:
+            logger.error(f"Payme: Buyurtma topilmadi: {transaction.account_id}")
+
+class ClickWebhookView(BaseClickWebhookView):
+    """Click webhook uchun maxsus view"""
+
+    def successfully_payment(self, params, transaction):
+        """To'lov muvaffaqiyatli bo'lganda chaqiriladi"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Click: Buyurtma #{order.id} muvaffaqiyatli to'landi")
+        except Order.DoesNotExist:
+            logger.error(f"Click: Buyurtma topilmadi: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """To'lov bekor qilinganda chaqiriladi"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+            logger.info(f"Click: Buyurtma #{order.id} bekor qilindi")
+        except Order.DoesNotExist:
+            logger.error(f"Click: Buyurtma topilmadi: {transaction.account_id}")
+
+class AtmosWebhookView(BaseAtmosWebhookView):
+    """Atmos webhook uchun maxsus view"""
+
+    def successfully_payment(self, params, transaction):
+        """To'lov muvaffaqiyatli bo'lganda chaqiriladi"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'paid'
+            order.save()
+            logger.info(f"Atmos: Buyurtma #{order.id} muvaffaqiyatli to'landi")
+        except Order.DoesNotExist:
+            logger.error(f"Atmos: Buyurtma topilmadi: {transaction.account_id}")
+
+    def cancelled_payment(self, params, transaction):
+        """To'lov bekor qilinganda chaqiriladi"""
+        try:
+            order = Order.objects.get(id=transaction.account_id)
+            order.status = 'cancelled'
+            order.save()
+            logger.info(f"Atmos: Buyurtma #{order.id} bekor qilindi")
+        except Order.DoesNotExist:
+            logger.error(f"Atmos: Buyurtma topilmadi: {transaction.account_id}")
+```
+
+## To'lov uchun link yaratish
+
+Django view'ida to'lov linkini yaratish misoli:
+
+```python
+# views.py
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.conf import settings
+from paytechuz.gateways.payme import PaymeGateway
+from paytechuz.gateways.click import ClickGateway
+from paytechuz.gateways.atmos import AtmosGateway
+from .models import Order
+
+def create_payment_link(request, order_id):
+    """Buyurtma uchun to'lov linkini yaratish"""
+    order = get_object_or_404(Order, id=order_id)
+    payment_method = request.GET.get('method', 'payme')  # payme, click, atmos
+
+    try:
+        if payment_method == 'payme':
+            # Payme to'lov linkini yaratish
+            payme_config = settings.PAYTECHUZ['PAYME']
+            payme = PaymeGateway(
+                payme_id=payme_config['PAYME_ID'],
+                payme_key=payme_config['PAYME_KEY'],
+                is_test_mode=payme_config.get('IS_TEST_MODE', True)
+            )
+            payment_link = payme.create_payment(
+                id=order.id,
+                amount=int(order.amount * 100),  # Payme tiyin hisobida ishlaydi
+                return_url=request.build_absolute_uri('/payment/success/')
+            )
+
+        elif payment_method == 'click':
+            # Click to'lov linkini yaratish
+            click_config = settings.PAYTECHUZ['CLICK']
+            click = ClickGateway(
+                service_id=click_config['SERVICE_ID'],
+                merchant_id=click_config['MERCHANT_ID'],
+                merchant_user_id=click_config['MERCHANT_USER_ID'],
+                secret_key=click_config['SECRET_KEY'],
+                is_test_mode=click_config.get('IS_TEST_MODE', True)
+            )
+            payment_link = click.create_payment(
+                id=order.id,
+                amount=order.amount,
+                return_url=request.build_absolute_uri('/payment/success/'),
+                description=f"Buyurtma #{order.id} uchun to'lov"
+            )
+
+        elif payment_method == 'atmos':
+            # Atmos to'lov linkini yaratish
+            atmos_config = settings.PAYTECHUZ['ATMOS']
+            atmos = AtmosGateway(
+                consumer_key=atmos_config['CONSUMER_KEY'],
+                consumer_secret=atmos_config['CONSUMER_SECRET'],
+                store_id=atmos_config['STORE_ID'],
+                terminal_id=atmos_config.get('TERMINAL_ID'),
+                is_test_mode=atmos_config.get('IS_TEST_MODE', True)
+            )
+            atmos_payment = atmos.create_payment(
+                account_id=order.id,
+                amount=int(order.amount * 100)  # Atmos tiyin hisobida ishlaydi
+            )
+            payment_link = atmos_payment['payment_url']
+
+        else:
+            return JsonResponse({'error': 'Noto\'g\'ri to\'lov usuli'}, status=400)
+
+        return JsonResponse({
+            'success': True,
+            'payment_url': payment_link,
+            'order_id': order.id,
+            'amount': order.amount,
+            'method': payment_method
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+def payment_success(request):
+    """To'lov muvaffaqiyatli yakunlanganda"""
+    return render(request, 'payment/success.html')
+```
+## Webhook URL'larini sozlash
+
+To'lov tizimlarining admin panellarida webhook URL'larini quyidagicha sozlang:
+
+### Payme
+```
+https://yourdomain.com/webhooks/payme/
+```
+
+### Click
+```
+https://yourdomain.com/webhooks/click/
+```
+
+### Atmos
 ```
 https://yourdomain.com/webhooks/atmos/
 ```
+
+## Qo'shimcha ma'lumot
+
+- [Atmos integratsiyasi bo'yicha batafsil qo'llanma](atmos_integration.md)
+- [FastAPI integratsiyasi](fastapi_integration.md)
+- [PayTechUZ GitHub repository](https://github.com/PayTechUz/paytechuz)
