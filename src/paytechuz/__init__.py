@@ -4,9 +4,8 @@ PayTechUZ - Unified payment library for Uzbekistan payment systems.
 This library provides a unified interface for working with Payme, Click, and Atmos
 payment systems in Uzbekistan. It supports Django, Flask, and FastAPI.
 """
-from typing import Any
 
-__version__ = '0.3.0'
+__version__ = '0.3.1'
 
 # Import framework integrations - these imports are used to check availability
 # of frameworks, not for direct usage
