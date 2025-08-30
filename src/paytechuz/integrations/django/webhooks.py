@@ -434,13 +434,19 @@ class PaymeWebhook(View):
                 f"Transaction {transaction_id} not found"
             ) from None
 
+        print(transaction.state, reason)
+
         # Check if transaction is already cancelled
         if transaction.state == PaymentTransaction.CANCELLED:
             # If transaction is already cancelled, return the existing data
             return self._cancel_response(transaction)
 
-        # Use the mark_as_cancelled method to properly store the reason
-        transaction.mark_as_cancelled(reason=reason)
+        if transaction.state == PaymentTransaction.INITIATING:
+            transaction.mark_as_cancelled_during_init(reason=reason)
+
+        else:
+            # Use the mark_as_cancelled method to properly store the reason
+            transaction.mark_as_cancelled(reason=reason)
 
         # Call the event method
         self.cancelled_payment(params, transaction)

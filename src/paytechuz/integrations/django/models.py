@@ -73,6 +73,12 @@ class PaymentTransaction(models.Model):
             self.save()
         return self
 
+    def mark_as_cancelled_during_init(self, reason):
+        self.state = self.CANCELLED_DURING_INIT
+        self.cancelled_at = timezone.now()
+        self.reason = reason
+        self.save()
+
     def mark_as_cancelled(self, reason=None):
         """
         Mark the transaction as cancelled.
