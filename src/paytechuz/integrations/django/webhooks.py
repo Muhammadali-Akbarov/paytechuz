@@ -434,8 +434,6 @@ class PaymeWebhook(View):
                 f"Transaction {transaction_id} not found"
             ) from None
 
-        print(transaction.state, reason)
-
         # Check if transaction is already cancelled
         if transaction.state == PaymentTransaction.CANCELLED:
             # If transaction is already cancelled, return the existing data
