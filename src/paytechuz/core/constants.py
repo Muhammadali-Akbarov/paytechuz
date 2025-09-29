@@ -20,17 +20,17 @@ class PaymentGateway(Enum):
 
 class PaymeEndpoints:
     """Payme API endpoints."""
-    RECEIPTS_CREATE = "receipts/create"
-    RECEIPTS_PAY = "receipts/pay"
-    RECEIPTS_SEND = "receipts/send"
-    RECEIPTS_CHECK = "receipts/check"
-    RECEIPTS_CANCEL = "receipts/cancel"
-    RECEIPTS_GET = "receipts/get"
-    CARDS_CREATE = "cards/create"
-    CARDS_VERIFY = "cards/verify"
-    CARDS_CHECK = "cards/check"
-    CARDS_REMOVE = "cards/remove"
-    CARDS_GET_VERIFY_CODE = "cards/get_verify_code"
+    RECEIPTS_CREATE = "receipts.create"
+    RECEIPTS_PAY = "receipts.pay"
+    RECEIPTS_SEND = "receipts.send"
+    RECEIPTS_CHECK = "receipts.check"
+    RECEIPTS_CANCEL = "receipts.cancel"
+    RECEIPTS_GET = "receipts.get"
+    CARDS_CREATE = "cards.create"
+    CARDS_VERIFY = "cards.verify"
+    CARDS_CHECK = "cards.check"
+    CARDS_REMOVE = "cards.remove"
+    CARDS_GET_VERIFY_CODE = "cards.get_verify_code"
 
 
 class PaymeNetworks:

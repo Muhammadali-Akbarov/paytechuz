@@ -48,11 +48,10 @@ class PaymeReceipts:
         Returns:
             Dict containing authentication headers
         """
-        headers = {"Accept-Language": language}
-
-        if self.payme_key:
-            auth = generate_basic_auth(self.payme_id, self.payme_key)
-            headers["Authorization"] = auth
+        headers = {
+            "Accept-Language": language,
+            "X-Auth": f"{self.payme_id}:{self.payme_key}"
+        }
 
         return headers
 
@@ -94,14 +93,15 @@ class PaymeReceipts:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.RECEIPTS_CREATE,
             "params": {
                 "amount": amount,
                 "account": account,
                 "description": description,
-                "detail": detail,
-                "merchant_id": self.payme_id
-            }
+                "detail": detail
+            },
+            "id": 1
         }
 
         # Add optional parameters
@@ -156,11 +156,13 @@ class PaymeReceipts:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.RECEIPTS_PAY,
             "params": {
                 "id": receipt_id,
                 "token": token
-            }
+            },
+            "id": 1
         }
 
         # Get authentication headers
@@ -199,11 +201,13 @@ class PaymeReceipts:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.RECEIPTS_SEND,
             "params": {
                 "id": receipt_id,
                 "phone": phone
-            }
+            },
+            "id": 1
         }
 
         # Get authentication headers
@@ -236,10 +240,12 @@ class PaymeReceipts:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.RECEIPTS_CHECK,
             "params": {
                 "id": receipt_id
-            }
+            },
+            "id": 1
         }
 
         # Get authentication headers
@@ -278,10 +284,12 @@ class PaymeReceipts:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.RECEIPTS_CANCEL,
             "params": {
                 "id": receipt_id
-            }
+            },
+            "id": 1
         }
 
         # Add reason if provided
@@ -318,10 +326,12 @@ class PaymeReceipts:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.RECEIPTS_GET,
             "params": {
                 "id": receipt_id
-            }
+            },
+            "id": 1
         }
 
         # Get authentication headers

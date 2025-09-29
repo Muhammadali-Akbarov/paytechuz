@@ -30,6 +30,22 @@ class PaymeCards:
         self.http_client = http_client
         self.payme_id = payme_id
 
+    def _get_auth_headers(self, language: str = 'uz') -> Dict[str, str]:
+        """
+        Get authentication headers for Payme API.
+
+        Args:
+            language: Language code (uz, ru, en)
+
+        Returns:
+            Dict containing authentication headers
+        """
+        headers = {
+            "Accept-Language": language,
+            "X-Auth": self.payme_id
+        }
+        return headers
+
     @handle_exceptions
     def create(
         self,
@@ -58,23 +74,24 @@ class PaymeCards:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.CARDS_CREATE,
             "params": {
                 "card": {
                     "number": card_number,
                     "expire": expire_date
                 },
-                "save": save,
-                "merchant_id": self.payme_id
-            }
+                "save": save
+            },
+            "id": 1
         }
 
         # Add optional parameters
         if phone:
             data["params"]["phone"] = phone
 
-        # Add language header
-        headers = {"Accept-Language": language}
+        # Get authentication headers
+        headers = self._get_auth_headers(language)
 
         # Make request
         response = self.http_client.post(
@@ -109,15 +126,17 @@ class PaymeCards:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.CARDS_VERIFY,
             "params": {
                 "token": token,
                 "code": code
-            }
+            },
+            "id": 1
         }
 
-        # Add language header
-        headers = {"Accept-Language": language}
+        # Get authentication headers
+        headers = self._get_auth_headers(language)
 
         # Make request
         response = self.http_client.post(
@@ -141,16 +160,22 @@ class PaymeCards:
         """
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.CARDS_CHECK,
             "params": {
                 "token": token
-            }
+            },
+            "id": 1
         }
+
+        # Get authentication headers
+        headers = self._get_auth_headers()
 
         # Make request
         response = self.http_client.post(
             endpoint="",
-            json_data=data
+            json_data=data,
+            headers=headers
         )
 
         return response
@@ -168,16 +193,22 @@ class PaymeCards:
         """
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.CARDS_REMOVE,
             "params": {
                 "token": token
-            }
+            },
+            "id": 1
         }
+
+        # Get authentication headers
+        headers = self._get_auth_headers()
 
         # Make request
         response = self.http_client.post(
             endpoint="",
-            json_data=data
+            json_data=data,
+            headers=headers
         )
 
         return response
@@ -204,14 +235,16 @@ class PaymeCards:
 
         # Prepare request data
         data = {
+            "jsonrpc": "2.0",
             "method": PaymeEndpoints.CARDS_GET_VERIFY_CODE,
             "params": {
                 "token": token
-            }
+            },
+            "id": 1
         }
 
-        # Add language header
-        headers = {"Accept-Language": language}
+        # Get authentication headers
+        headers = self._get_auth_headers(language)
 
         # Make request
         response = self.http_client.post(
