@@ -204,3 +204,72 @@ class ClickGateway(BasePaymentGateway):
             'cancelled_at': cancel_data.get('cancelled_at'),
             'raw_response': cancel_data
         }
+
+    @handle_exceptions
+    def card_token_request(
+        self,
+        card_number: str,
+        expire_date: str,
+        temporary: int = 0
+    ) -> Dict[str, Any]:
+        """
+        Request a card token for card payment.
+
+        Args:
+            card_number: Card number (e.g., "5614681005030279")
+            expire_date: Card expiration date (e.g., "0330" for March 2030)
+            temporary: Whether the token is temporary (0 or 1)
+
+        Returns:
+            Dict containing card token and related information
+        """
+        return self.merchant_api.card_token_request(
+            card_number=card_number,
+            expire_date=expire_date,
+            temporary=temporary
+        )
+
+    @handle_exceptions
+    def card_token_verify(
+        self,
+        card_token: str,
+        sms_code: Union[int, str]
+    ) -> Dict[str, Any]:
+        """
+        Verify a card token with SMS code.
+
+        Args:
+            card_token: Card token from card_token_request
+            sms_code: SMS code sent to the card holder
+
+        Returns:
+            Dict containing verification status and card information
+        """
+        return self.merchant_api.card_token_verify(
+            card_token=card_token,
+            sms_code=sms_code
+        )
+
+    @handle_exceptions
+    def card_token_payment(
+        self,
+        card_token: str,
+        amount: Union[int, float],
+        transaction_parameter: str
+    ) -> Dict[str, Any]:
+        """
+        Make a payment using a verified card token.
+
+        Args:
+            card_token: Verified card token
+            amount: Payment amount in som
+            transaction_parameter: Unique transaction parameter
+
+        Returns:
+            Dict containing payment status and payment ID
+        """
+        return self.merchant_api.card_token_payment(
+            card_token=card_token,
+            amount=amount,
+            transaction_parameter=transaction_parameter
+        )

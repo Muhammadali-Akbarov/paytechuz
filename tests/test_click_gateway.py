@@ -210,8 +210,169 @@ class TestClickGateway:
             secret_key="prod_secret",
             is_test_mode=False
         )
-        
+
         assert gateway.service_id == "prod_service_id"
         assert gateway.merchant_id == "prod_merchant_id"
         assert gateway.merchant_user_id == "prod_user_id"
         assert gateway.secret_key == "prod_secret"
+
+    @patch('paytechuz.gateways.click.client.ClickMerchantApi')
+    def test_card_token_request_success(self, mock_merchant_api, click_gateway):
+        """Test successful card token request."""
+        mock_api_instance = Mock()
+        mock_merchant_api.return_value = mock_api_instance
+        mock_api_instance.card_token_request.return_value = {
+            'error_code': 0,
+            'error_note': '',
+            'card_token': 'F64C0AD1-8744-4996-ACCC-E93129F3CB26',
+            'phone_number': '********1717',
+            'temporary': False,
+            'eps_id': '0064'
+        }
+
+        gateway = ClickGateway(
+            service_id="test_service_id",
+            merchant_id="test_merchant_id",
+            secret_key="test_secret_key",
+            is_test_mode=True
+        )
+
+        result = gateway.card_token_request(
+            card_number="5614681005030279",
+            expire_date="0330",
+            temporary=0
+        )
+
+        assert result['error_code'] == 0
+        assert result['card_token'] == 'F64C0AD1-8744-4996-ACCC-E93129F3CB26'
+        assert result['phone_number'] == '********1717'
+        mock_api_instance.card_token_request.assert_called_once_with(
+            card_number="5614681005030279",
+            expire_date="0330",
+            temporary=0
+        )
+
+    @patch('paytechuz.gateways.click.client.ClickMerchantApi')
+    def test_card_token_verify_success(self, mock_merchant_api, click_gateway):
+        """Test successful card token verification."""
+        mock_api_instance = Mock()
+        mock_merchant_api.return_value = mock_api_instance
+        mock_api_instance.card_token_verify.return_value = {
+            'error_code': 0,
+            'error_note': '',
+            'card_number': '561468******0279',
+            'eps_id': '0064'
+        }
+
+        gateway = ClickGateway(
+            service_id="test_service_id",
+            merchant_id="test_merchant_id",
+            secret_key="test_secret_key",
+            is_test_mode=True
+        )
+
+        result = gateway.card_token_verify(
+            card_token="4E0E7BA2-53BA-454B-B1FA-5725678C8CDE",
+            sms_code=188375
+        )
+
+        assert result['error_code'] == 0
+        assert result['card_number'] == '561468******0279'
+        mock_api_instance.card_token_verify.assert_called_once_with(
+            card_token="4E0E7BA2-53BA-454B-B1FA-5725678C8CDE",
+            sms_code=188375
+        )
+
+    @patch('paytechuz.gateways.click.client.ClickMerchantApi')
+    def test_card_token_verify_expired_sms(self, mock_merchant_api, click_gateway):
+        """Test card token verification with expired SMS code."""
+        mock_api_instance = Mock()
+        mock_merchant_api.return_value = mock_api_instance
+        mock_api_instance.card_token_verify.return_value = {
+            'error_code': -301,
+            'error_note': 'Время жизни смс-кода истекло'
+        }
+
+        gateway = ClickGateway(
+            service_id="test_service_id",
+            merchant_id="test_merchant_id",
+            secret_key="test_secret_key",
+            is_test_mode=True
+        )
+
+        result = gateway.card_token_verify(
+            card_token="4E0E7BA2-53BA-454B-B1FA-5725678C8CDE",
+            sms_code=188375
+        )
+
+        assert result['error_code'] == -301
+        assert 'истекло' in result['error_note']
+
+    @patch('paytechuz.gateways.click.client.ClickMerchantApi')
+    def test_card_token_payment_success(self, mock_merchant_api, click_gateway):
+        """Test successful payment with card token."""
+        mock_api_instance = Mock()
+        mock_merchant_api.return_value = mock_api_instance
+        mock_api_instance.card_token_payment.return_value = {
+            'error_code': 0,
+            'error_note': 'Успешно проведен',
+            'payment_id': '4493670625',
+            'payment_status': 2,
+            'eps_id': '0064'
+        }
+
+        gateway = ClickGateway(
+            service_id="test_service_id",
+            merchant_id="test_merchant_id",
+            secret_key="test_secret_key",
+            is_test_mode=True
+        )
+
+        result = gateway.card_token_payment(
+            card_token="4E46C8F3-8E5A-4DC0-9F81-940C0FB23085",
+            amount=1000,
+            transaction_parameter="PAYMENT_1761563561"
+        )
+
+        assert result['error_code'] == 0
+        assert result['payment_id'] == '4493670625'
+        assert result['payment_status'] == 2
+        mock_api_instance.card_token_payment.assert_called_once_with(
+            card_token="4E46C8F3-8E5A-4DC0-9F81-940C0FB23085",
+            amount=1000,
+            transaction_parameter="PAYMENT_1761563561"
+        )
+
+    @patch('paytechuz.gateways.click.client.ClickMerchantApi')
+    def test_card_token_payment_with_float_amount(self, mock_merchant_api, click_gateway):
+        """Test payment with card token using float amount."""
+        mock_api_instance = Mock()
+        mock_merchant_api.return_value = mock_api_instance
+        mock_api_instance.card_token_payment.return_value = {
+            'error_code': 0,
+            'error_note': 'Успешно проведен',
+            'payment_id': '4493670626',
+            'payment_status': 2,
+            'eps_id': '0064'
+        }
+
+        gateway = ClickGateway(
+            service_id="test_service_id",
+            merchant_id="test_merchant_id",
+            secret_key="test_secret_key",
+            is_test_mode=True
+        )
+
+        result = gateway.card_token_payment(
+            card_token="4E46C8F3-8E5A-4DC0-9F81-940C0FB23085",
+            amount=1000.50,
+            transaction_parameter="PAYMENT_1761563562"
+        )
+
+        assert result['error_code'] == 0
+        assert result['payment_id'] == '4493670626'
+        mock_api_instance.card_token_payment.assert_called_once_with(
+            card_token="4E46C8F3-8E5A-4DC0-9F81-940C0FB23085",
+            amount=1000.50,
+            transaction_parameter="PAYMENT_1761563562"
+        )

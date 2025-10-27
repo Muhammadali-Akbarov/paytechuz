@@ -162,6 +162,48 @@ click_link = click.create_payment(
     return_url="https://example.com/return"
 )
 
+# Click card token payment
+# 1. Request card token
+card_token_response = click.card_token_request(
+    card_number="5614681005030279",
+    expire_date="0330",
+    temporary=0
+)
+# Response: {
+#     "error_code": 0,
+#     "error_note": "",
+#     "card_token": "F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+#     "phone_number": "********1717",
+#     "temporary": false,
+#     "eps_id": "0064"
+# }
+
+# 2. Verify card token with SMS code
+verify_response = click.card_token_verify(
+    card_token="F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+    sms_code=188375
+)
+# Response: {
+#     "error_code": 0,
+#     "error_note": "",
+#     "card_number": "561468******0279",
+#     "eps_id": "0064"
+# }
+
+# 3. Make payment with verified card token
+payment_response = click.card_token_payment(
+    card_token="F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+    amount=1000,
+    transaction_parameter="PAYMENT_1761563561"
+)
+# Response: {
+#     "error_code": 0,
+#     "error_note": "Successfully processed",
+#     "payment_id": "4493670625",
+#     "payment_status": 2,
+#     "eps_id": "0064"
+# }
+
 # Generate Atmos payment link
 from paytechuz.gateways.atmos import AtmosGateway
 
@@ -331,3 +373,167 @@ class CustomPaymeWebhookHandler(PaymeWebhookHandler):
 ```
 
 The same methods are available for the `ClickWebhookHandler` class.
+
+## Click Card Token Payment
+
+Click payment gateway supports card token payment in 3 steps:
+
+### 1. Request Card Token
+
+Send customer's card information to Click API to get a card token:
+
+```python
+from fastapi import FastAPI, HTTPException
+from paytechuz.gateways.click import ClickGateway
+
+app = FastAPI()
+
+click = ClickGateway(
+    service_id='your_service_id',
+    merchant_id='your_merchant_id',
+    merchant_user_id='your_merchant_user_id',
+    secret_key='your_secret_key',
+    is_test_mode=True
+)
+
+@app.post("/click/request-card-token")
+async def request_card_token(card_number: str, expire_date: str):
+    """
+    Request card token
+
+    Args:
+        card_number: Card number (e.g., "5614681005030279")
+        expire_date: Card expiration date (e.g., "0330" - March 2030)
+    """
+    try:
+        response = click.card_token_request(
+            card_number=card_number,
+            expire_date=expire_date,
+            temporary=0
+        )
+
+        if response.get('error_code') == 0:
+            return {
+                "success": True,
+                "card_token": response.get('card_token'),
+                "phone_number": response.get('phone_number'),
+                "message": "Card token received successfully. SMS code sent."
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=response.get('error_note', 'An error occurred')
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### 2. Verify Card Token
+
+Verify the card token with SMS code sent to customer:
+
+```python
+@app.post("/click/verify-card-token")
+async def verify_card_token(card_token: str, sms_code: int):
+    """
+    Verify card token with SMS code
+
+    Args:
+        card_token: Card token from previous step
+        sms_code: SMS code sent to customer
+    """
+    try:
+        response = click.card_token_verify(
+            card_token=card_token,
+            sms_code=sms_code
+        )
+
+        if response.get('error_code') == 0:
+            return {
+                "success": True,
+                "card_number": response.get('card_number'),
+                "message": "Card token verified successfully"
+            }
+        elif response.get('error_code') == -301:
+            raise HTTPException(
+                status_code=400,
+                detail="SMS code expired. Please request a new one."
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=response.get('error_note', 'An error occurred')
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### 3. Make Payment with Card Token
+
+Process payment using verified card token:
+
+```python
+@app.post("/click/pay-with-card-token")
+async def pay_with_card_token(
+    card_token: str,
+    amount: float,
+    transaction_parameter: str
+):
+    """
+    Make payment with verified card token
+
+    Args:
+        card_token: Verified card token
+        amount: Payment amount (in som)
+        transaction_parameter: Unique transaction parameter
+    """
+    try:
+        response = click.card_token_payment(
+            card_token=card_token,
+            amount=amount,
+            transaction_parameter=transaction_parameter
+        )
+
+        if response.get('error_code') == 0:
+            return {
+                "success": True,
+                "payment_id": response.get('payment_id'),
+                "payment_status": response.get('payment_status'),
+                "message": "Payment processed successfully"
+            }
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=response.get('error_note', 'Payment failed')
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+```
+
+### Card Token Payment Flow
+
+Complete card token payment flow:
+
+```python
+# 1. Customer enters card information
+# POST /click/request-card-token
+# {
+#     "card_number": "5614681005030279",
+#     "expire_date": "0330"
+# }
+
+# 2. Customer verifies with SMS code
+# POST /click/verify-card-token
+# {
+#     "card_token": "F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+#     "sms_code": 188375
+# }
+
+# 3. Process payment with verified card token
+# POST /click/pay-with-card-token
+# {
+#     "card_token": "F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+#     "amount": 1000,
+#     "transaction_parameter": "PAYMENT_1761563561"
+# }
+```

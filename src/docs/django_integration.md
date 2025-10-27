@@ -311,6 +311,75 @@ https://yourdomain.com/webhooks/click/
 https://yourdomain.com/webhooks/atmos/
 ```
 
+## Click Karta Tokeni Bilan To'lov
+
+Click payment gateway karta tokeni bilan to'lovni quyidagi 3 bosqichda amalga oshirish mumkin:
+
+### 1. Karta Tokeni So'rash
+
+```python
+from paytechuz.gateways.click import ClickGateway
+
+click = ClickGateway(
+    service_id='sizning_service_id',
+    merchant_id='sizning_merchant_id',
+    merchant_user_id='sizning_merchant_user_id',
+    secret_key='sizning_secret_key',
+    is_test_mode=True
+)
+
+# Karta tokeni so'rash
+response = click.card_token_request(
+    card_number="5614681005030279",
+    expire_date="0330",
+    temporary=0
+)
+
+if response.get('error_code') == 0:
+    card_token = response.get('card_token')
+    phone_number = response.get('phone_number')
+    # SMS kodi foydalanuvchiga yuborildi
+else:
+    error_message = response.get('error_note')
+```
+
+### 2. Karta Tokenini Tasdiqlash
+
+```python
+# Karta tokenini SMS kodi bilan tasdiqlash
+response = click.card_token_verify(
+    card_token="F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+    sms_code=188375
+)
+
+if response.get('error_code') == 0:
+    card_number = response.get('card_number')
+    # Karta tokeni muvaffaqiyatli tasdiqlandi
+elif response.get('error_code') == -301:
+    # SMS kodi muddati tugadi
+    pass
+else:
+    error_message = response.get('error_note')
+```
+
+### 3. Tasdiqlangan Karta Tokeni Bilan To'lov
+
+```python
+# Tasdiqlangan karta tokeni bilan to'lov qilish
+response = click.card_token_payment(
+    card_token="F64C0AD1-8744-4996-ACCC-E93129F3CB26",
+    amount=1000,
+    transaction_parameter="PAYMENT_1761563561"
+)
+
+if response.get('error_code') == 0:
+    payment_id = response.get('payment_id')
+    payment_status = response.get('payment_status')
+    # To'lov muvaffaqiyatli amalga oshirildi
+else:
+    error_message = response.get('error_note')
+```
+
 ## Qo'shimcha ma'lumot
 
 - [Atmos integratsiyasi bo'yicha batafsil qo'llanma](atmos_integration.md)
