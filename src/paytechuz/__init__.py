@@ -5,7 +5,7 @@ This library provides a unified interface for working with Payme, Click, and Atm
 payment systems in Uzbekistan. It supports Django, Flask, and FastAPI.
 """
 
-__version__ = '0.3.2'
+__version__ = '0.3.7'
 
 # Import framework integrations - these imports are used to check availability
 # of frameworks, not for direct usage
