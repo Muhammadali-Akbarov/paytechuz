@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 from paytechuz.integrations.fastapi.models import run_migrations
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 
 from app.database import Base
 

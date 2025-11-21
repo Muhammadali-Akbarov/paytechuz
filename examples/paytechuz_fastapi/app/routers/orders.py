@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.dependencies import get_db
 from app.gateways import get_gateways
