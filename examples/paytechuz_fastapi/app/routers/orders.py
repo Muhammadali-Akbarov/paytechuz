@@ -1,9 +1,9 @@
-from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
-from app.models import Order, Invoice
 from app.dependencies import get_db
 from app.gateways import get_gateways
+from app.models import Invoice, Order
 from app.typing import OrderCreate, PaymentResponse
 
 
@@ -20,7 +20,10 @@ async def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
     gateway = get_gateways(name=payment_method)
 
     if not gateway:
-        raise HTTPException(status_code=400, detail="Invalid payment method. Use 'payme', 'click', or 'atmos'")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid payment method. Use 'payme', 'click', or 'atmos'"
+        )
 
     db_order = Order(
         product_name=order_data.product_name,

@@ -1,5 +1,6 @@
+from paytechuz.integrations.fastapi import ClickWebhookHandler, PaymeWebhookHandler
+
 from app.models import Invoice
-from paytechuz.integrations.fastapi import PaymeWebhookHandler, ClickWebhookHandler
 
 
 class CustomPaymeWebhookHandler(PaymeWebhookHandler):
@@ -28,4 +29,3 @@ class CustomClickWebhookHandler(ClickWebhookHandler):
         if invoice:
             invoice.status = "cancelled"
             self.db.commit()
-

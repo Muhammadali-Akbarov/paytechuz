@@ -1,6 +1,8 @@
-from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel
+
 
 class OrderCreate(BaseModel):
     """Request model for creating an order"""
@@ -47,18 +49,19 @@ class PaymentResponse(BaseModel):
     payment_link: Optional[str] = None
 
 
-
 class PaymentLinkRequest(BaseModel):
     """Request model for generating payment link"""
     order_id: int
     payment_method: str  # "payme", "click" or "atmos"
     return_url: Optional[str] = "https://example.com/return"
 
+
 class PaymentLinkResponse(BaseModel):
     """Response model for payment link"""
     order_id: int
     payment_method: str
     payment_link: str
+
 
 class OrderUpdate(BaseModel):
     """Request model for updating an order"""
@@ -67,6 +70,7 @@ class OrderUpdate(BaseModel):
     status: Optional[str] = None
     description: Optional[str] = None
 
+
 class OrderListResponse(BaseModel):
     """Response model for order list"""
     orders: list[OrderResponse]
@@ -74,7 +78,8 @@ class OrderListResponse(BaseModel):
     skip: int
     limit: int
 
+
 class ErrorResponse(BaseModel):
     """Response model for error messages"""
     detail: str
-    error_code: Optional[str] = None 
+    error_code: Optional[str] = None

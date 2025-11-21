@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from paytechuz.integrations.fastapi.models import run_migrations
 
 from app.database import Base
-from paytechuz.integrations.fastapi.models import run_migrations
 
 
 class Order(Base):
@@ -28,7 +29,11 @@ class Invoice(Base):
     payment_method = Column(String, nullable=False)
     payment_link = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc)
+    )
 
     order = relationship("Order", back_populates="invoices")
 

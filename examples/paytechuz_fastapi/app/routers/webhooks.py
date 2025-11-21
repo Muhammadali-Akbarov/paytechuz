@@ -1,11 +1,13 @@
-from fastapi import APIRouter, Request, Depends
+import json
+
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
+from paytechuz.gateways.atmos.webhook import AtmosWebhookHandler
+
+from app import config
 from app.dependencies import get_db
 from app.models import Invoice
-from app.webhook_handlers import CustomPaymeWebhookHandler, CustomClickWebhookHandler
-from app import config
-from paytechuz.gateways.atmos.webhook import AtmosWebhookHandler
-import json
+from app.webhook_handlers import CustomClickWebhookHandler, CustomPaymeWebhookHandler
 
 router = APIRouter(
     prefix="/api/v1/webhooks",
@@ -62,4 +64,3 @@ async def atmos_webhook(request: Request, db: Session = Depends(get_db)):
             'status': 0,
             'message': f'Error: {str(e)}'
         }
-

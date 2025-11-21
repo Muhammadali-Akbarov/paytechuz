@@ -8,13 +8,13 @@ from app import config
 def get_gateways(name=None):
     """
     Get payment gateway(s).
-    
+
     Args:
-        name: Gateway name ('payme', 'click', or 'atmos'). 
+        name: Gateway name ('payme', 'click', or 'atmos').
               If None, returns all gateways.
-    
+
     Returns:
-        Single gateway instance if name is provided, 
+        Single gateway instance if name is provided,
         or dict of all gateways if name is None.
     """
     if name:
@@ -24,7 +24,6 @@ def get_gateways(name=None):
                 payme_key=config.PAYME_KEY,
                 is_test_mode=config.IS_TEST_MODE
             )
-        
         if name == "click":
             return ClickGateway(
                 service_id=config.CLICK_SERVICE_ID,
@@ -33,7 +32,6 @@ def get_gateways(name=None):
                 secret_key=config.CLICK_SECRET_KEY,
                 is_test_mode=config.IS_TEST_MODE
             )
-        
         if name == "atmos":
             return AtmosGateway(
                 consumer_key=config.ATMOS_CONSUMER_KEY,
@@ -42,7 +40,7 @@ def get_gateways(name=None):
                 terminal_id=config.ATMOS_TERMINAL_ID,
                 is_test_mode=config.IS_TEST_MODE
             )
-        
+
         return None
 
     return {
@@ -66,4 +64,3 @@ def get_gateways(name=None):
             is_test_mode=config.IS_TEST_MODE
         )
     }
-
