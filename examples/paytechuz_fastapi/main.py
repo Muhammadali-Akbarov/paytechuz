@@ -18,26 +18,31 @@ app = FastAPI()
 
 init_db(engine)
 
+from environs import Env
+
+env = Env()
+env.read_env()
+
 payme = PaymeGateway(
-    payme_id="your_payme_id",
-    payme_key="your_payme_key",
-    is_test_mode=True  # Set to False in production environment
+    payme_id=env.str("PAYME_ID"),
+    payme_key=env.str("PAYME_KEY"),
+    is_test_mode=env.bool("IS_TEST_MODE", True)
 )
 
 click = ClickGateway(
-    service_id="your_service_id",
-    merchant_id="your_merchant_id",
-    merchant_user_id="your_merchant_user_id",
-    secret_key="your_secret_key",
-    is_test_mode=True  # Set to False in production environment
+    service_id=env.str("CLICK_SERVICE_ID"),
+    merchant_id=env.str("CLICK_MERCHANT_ID"),
+    merchant_user_id=env.str("CLICK_MERCHANT_USER_ID"),
+    secret_key=env.str("CLICK_SECRET_KEY"),
+    is_test_mode=env.bool("IS_TEST_MODE", True)
 )
 
 atmos = AtmosGateway(
-    consumer_key="your_atmos_consumer_key",
-    consumer_secret="your_atmos_consumer_secret",
-    store_id="your_atmos_store_id",
-    terminal_id="your_atmos_terminal_id",  # Optional
-    is_test_mode=True  # Set to False in production environment
+    consumer_key=env.str("ATMOS_CONSUMER_KEY"),
+    consumer_secret=env.str("ATMOS_CONSUMER_SECRET"),
+    store_id=env.str("ATMOS_STORE_ID"),
+    terminal_id=env.str("ATMOS_TERMINAL_ID"),
+    is_test_mode=env.bool("IS_TEST_MODE", True)
 )
 
 
@@ -99,8 +104,8 @@ async def create_order(order_data: OrderCreate, db: Session = Depends(get_db)):
 async def payme_webhook(request: Request, db: Session = Depends(get_db)):
     handler = CustomPaymeWebhookHandler(
         db=db,
-        payme_id="your_payme_id",
-        payme_key="your_payme_key",
+        payme_id=env.str("PAYME_ID"),
+        payme_key=env.str("PAYME_KEY"),
         account_model=Order,
         account_field='id',
         amount_field='amount'
@@ -112,8 +117,8 @@ async def payme_webhook(request: Request, db: Session = Depends(get_db)):
 async def click_webhook(request: Request, db: Session = Depends(get_db)):
     handler = CustomClickWebhookHandler(
         db=db,
-        service_id="your_service_id",
-        secret_key="your_secret_key",
+        service_id=env.str("CLICK_SERVICE_ID"),
+        secret_key=env.str("CLICK_SECRET_KEY"),
         account_model=Order
     )
     return await handler.handle_webhook(request)
@@ -124,7 +129,7 @@ async def atmos_webhook(request: Request, db: Session = Depends(get_db)):
     import json
 
     # Atmos webhook handler
-    atmos_handler = AtmosWebhookHandler(api_key="your_atmos_api_key")
+    atmos_handler = AtmosWebhookHandler(api_key=env.str("ATMOS_API_KEY"))
 
     try:
         # Get request body
