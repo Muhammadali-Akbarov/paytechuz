@@ -7,8 +7,8 @@ class OrderCreate(BaseModel):
     product_name: str
     amount: float
     description: Optional[str] = None
-    payment_method: str  # "payme", "click" yoki "atmos"
-    return_url: Optional[str] = "https://example.com/return"
+    payment_method: str
+
 
 class OrderResponse(BaseModel):
     """Order ma'lumotlarini qaytarish uchun response model"""
@@ -22,6 +22,31 @@ class OrderResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class InvoiceResponse(BaseModel):
+    """Invoice ma'lumotlarini qaytarish uchun response model"""
+    id: int
+    order_id: int
+    amount: float
+    status: str
+    payment_method: str
+    payment_link: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PaymentResponse(BaseModel):
+    """To'lov ma'lumotlarini qaytarish uchun soddalashtirilgan response model"""
+    id: int
+    amount: float
+    payment_method: str
+    payment_link: Optional[str] = None
+
+
 
 class PaymentLinkRequest(BaseModel):
     """To'lov linkini generatsiya qilish uchun request model"""

@@ -1,28 +1,31 @@
-from app.models import Order
+from app.models import Invoice
 from paytechuz.integrations.fastapi import PaymeWebhookHandler, ClickWebhookHandler
+
 
 class CustomPaymeWebhookHandler(PaymeWebhookHandler):
     def successfully_payment(self, params, transaction):
-        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
-        if order:
-            order.status = "paid"
+        invoice = self.db.query(Invoice).filter(Invoice.id == transaction.account_id).first()
+        if invoice:
+            invoice.status = "paid"
             self.db.commit()
 
     def cancelled_payment(self, params, transaction):
-        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
-        if order:
-            order.status = "cancelled"
+        invoice = self.db.query(Invoice).filter(Invoice.id == transaction.account_id).first()
+        if invoice:
+            invoice.status = "cancelled"
             self.db.commit()
+
 
 class CustomClickWebhookHandler(ClickWebhookHandler):
     def successfully_payment(self, params, transaction):
-        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
-        if order:
-            order.status = "paid"
+        invoice = self.db.query(Invoice).filter(Invoice.id == transaction.account_id).first()
+        if invoice:
+            invoice.status = "paid"
             self.db.commit()
 
     def cancelled_payment(self, params, transaction):
-        order = self.db.query(Order).filter(Order.id == transaction.account_id).first()
-        if order:
-            order.status = "cancelled"
+        invoice = self.db.query(Invoice).filter(Invoice.id == transaction.account_id).first()
+        if invoice:
+            invoice.status = "cancelled"
             self.db.commit()
+
