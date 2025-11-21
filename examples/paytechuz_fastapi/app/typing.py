@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class OrderCreate(BaseModel):
-    """Order yaratish uchun request model"""
+    """Request model for creating an order"""
     product_name: str
     amount: float
     description: Optional[str] = None
@@ -11,7 +11,7 @@ class OrderCreate(BaseModel):
 
 
 class OrderResponse(BaseModel):
-    """Order ma'lumotlarini qaytarish uchun response model"""
+    """Response model for order data"""
     id: int
     product_name: str
     amount: float
@@ -25,7 +25,7 @@ class OrderResponse(BaseModel):
 
 
 class InvoiceResponse(BaseModel):
-    """Invoice ma'lumotlarini qaytarish uchun response model"""
+    """Response model for invoice data"""
     id: int
     order_id: int
     amount: float
@@ -40,7 +40,7 @@ class InvoiceResponse(BaseModel):
 
 
 class PaymentResponse(BaseModel):
-    """To'lov ma'lumotlarini qaytarish uchun soddalashtirilgan response model"""
+    """Simplified response model for payment data"""
     id: int
     amount: float
     payment_method: str
@@ -49,32 +49,32 @@ class PaymentResponse(BaseModel):
 
 
 class PaymentLinkRequest(BaseModel):
-    """To'lov linkini generatsiya qilish uchun request model"""
+    """Request model for generating payment link"""
     order_id: int
-    payment_method: str  # "payme", "click" yoki "atmos"
+    payment_method: str  # "payme", "click" or "atmos"
     return_url: Optional[str] = "https://example.com/return"
 
 class PaymentLinkResponse(BaseModel):
-    """To'lov linkini qaytarish uchun response model"""
+    """Response model for payment link"""
     order_id: int
     payment_method: str
     payment_link: str
 
 class OrderUpdate(BaseModel):
-    """Order yangilash uchun request model"""
+    """Request model for updating an order"""
     product_name: Optional[str] = None
     amount: Optional[float] = None
     status: Optional[str] = None
     description: Optional[str] = None
 
 class OrderListResponse(BaseModel):
-    """Orderlar ro'yxatini qaytarish uchun response model"""
+    """Response model for order list"""
     orders: list[OrderResponse]
     total: int
     skip: int
     limit: int
 
 class ErrorResponse(BaseModel):
-    """Xatolik xabarini qaytarish uchun response model"""
+    """Response model for error messages"""
     detail: str
     error_code: Optional[str] = None 
