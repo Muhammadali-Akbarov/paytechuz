@@ -33,18 +33,21 @@ pip install paytechuz[django]
 
 # For FastAPI
 pip install paytechuz[fastapi]
+
+# For Flask
+pip install paytechuz[flask]
 ```
 
 ## API Key Configuration
 
-**Important:** PayTechUZ requires a valid API key for license validation.
+**Important:** PayTechUZ requires a valid license API key for license validation.
 
 ```bash
-# Set your API key as an environment variable
-export PAYTECH_API_KEY="your-api-key-here"
+# Set your license API key as an environment variable
+export PAYTECH_LICENSE_API_KEY="your-license-api-key-here"
 ```
 
-To obtain a production API key, contact **@muhammadali_me** on Telegram.
+To obtain a production license API key, contact **@muhammadali_me** on Telegram.
 
 ## Quick Start
 
@@ -62,7 +65,7 @@ payme = PaymeGateway(
     payme_id="your_payme_id",
     payme_key="your_payme_key",
     is_test_mode=True,  # Set to False in production environment
-    api_key="your_api_key"  # Or set PAYTECH_API_KEY environment variable
+    license_api_key="your_license_api_key"
 )
 
 # Initialize Click gateway
@@ -72,7 +75,7 @@ click = ClickGateway(
     merchant_user_id="your_merchant_user_id",
     secret_key="your_secret_key",
     is_test_mode=True,  # Set to False in production environment
-    api_key="your_api_key"  # Or set PAYTECH_API_KEY environment variable
+    license_api_key="your_license_api_key"
 )
 
 # Initialize Atmos gateway
@@ -82,7 +85,7 @@ atmos = AtmosGateway(
     store_id="your_store_id",
     terminal_id="your_terminal_id",  # optional
     is_test_mode=True,  # Set to False in production environment
-    api_key="your_api_key"  # Or set PAYTECH_API_KEY environment variable
+    license_api_key="your_license_api_key"
 )
 
 # Generate payment links
@@ -403,9 +406,7 @@ Detailed documentation is available in multiple languages:
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 📖 **Documentation:** [pay-tech.uz](https://pay-tech.uz)  
-🐛 **Issues:** [GitHub Issues](https://github.com/PayTechUz/paytechuz-py/issues)  
 💬 **Support:** [Telegram](https://t.me/paytechuz)
 
 ## License
-
 This project is licensed under the MIT License - see the LICENSE file for details.
