@@ -11,12 +11,12 @@ PayTechUZ is a unified payment library for integrating with popular payment syst
 
 ## Features
 
-- 🔄 **API**: Consistent interface for multiple payment providers
-- 🛡️ **Secure**: Built-in security features for payment processing
-- 🔌 **Framework Integration**: Native support for Django and FastAPI
-- 🌐 **Webhook Handling**: Easy-to-use webhook handlers for payment notifications
-- 📊 **Transaction Management**: Automatic transaction tracking and management
-- 🧩 **Extensible**: Easy to add new payment providers
+- **API**: Consistent interface for multiple payment providers
+- **Secure**: Built-in security features for payment processing
+- **Framework Integration**: Native support for Django and FastAPI
+- **Webhook Handling**: Easy-to-use webhook handlers for payment notifications
+- **Transaction Management**: Automatic transaction tracking and management
+- **Extensible**: Easy to add new payment providers
 ## Installation
 
 ### Basic Installation
@@ -37,7 +37,7 @@ pip install paytechuz[fastapi]
 
 ## API Key Configuration
 
-**📝 Important:** Starting from version 0.3.8, PayTechUZ requires a valid API key for license validation.
+**📝 Important:** PayTechUZ requires a valid API key for license validation.
 
 ```bash
 # Set your API key as an environment variable
@@ -104,18 +104,6 @@ atmos_payment = atmos.create_payment(
     amount=150000  # amount in UZS
 )
 atmos_link = atmos_payment['payment_url']
-
-# Check payment status
-status = atmos.check_payment(atmos_payment['transaction_id'])
-print(f"Payment status: {status['status']}")
-
-# Cancel payment if needed
-if status['status'] == 'pending':
-    cancel_result = atmos.cancel_payment(
-        transaction_id=atmos_payment['transaction_id'],
-        reason="Customer request"
-    )
-    print(f"Cancellation status: {cancel_result['status']}")
 ```
 
 ### Django Integration
