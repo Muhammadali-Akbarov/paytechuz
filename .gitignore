@@ -25,6 +25,12 @@ wheels/
 *.egg
 MANIFEST
 
+# Temporary build directory (auto-generated during make update)
+src/paytechuz/
+
+# Cython generated files
+*.c
+
 # PyInstaller
 *.manifest
 *.spec

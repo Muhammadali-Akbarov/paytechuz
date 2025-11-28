@@ -187,4 +187,10 @@ exception_whitelist = (
     InternalServiceError,
     ExternalServiceError,
     TimeoutError,
+    UnknownPartnerError,
 )
+
+class UnknownPartnerError(PaymentException):
+    """Exception raised when the partner (api_key) is unknown or invalid."""
+    code = "unknown_partner_error"
+    message = "Unknown or invalid partner API key"

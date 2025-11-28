@@ -48,6 +48,29 @@ Base.metadata.create_all(bind=engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 ```
 
+## API Key Sozlash
+
+PayTechUZ ishlatish uchun API key kerak. API key olish uchun Telegram'da **@muhammadali_me** bilan bog'laning.
+
+API key ni environment variable sifatida sozlang:
+
+```bash
+# Linux/macOS
+export PAYTECH_API_KEY="sizning-api-key"
+
+# Windows
+set PAYTECH_API_KEY=sizning-api-key
+```
+
+Yoki FastAPI config.py da:
+
+```python
+import os
+
+# API Key
+PAYTECH_API_KEY = os.getenv('PAYTECH_API_KEY')
+```
+
 ## URL'larni sozlash
 
 FastAPI ilovangizga webhook obrabotchiklar qo'shing:
@@ -130,6 +153,7 @@ async def click_webhook(request: Request, db: Session = Depends(get_db)):
 ## To'lov uchun link yaratish
 
 ```python
+import os
 from paytechuz.gateways.payme import PaymeGateway
 from paytechuz.gateways.click import ClickGateway
 
@@ -140,7 +164,8 @@ order = db.query(Order).filter(Order.id == 1).first()
 payme = PaymeGateway(
     payme_id='sizning_payme_id',
     payme_key='sizning_payme_key',
-    is_test_mode=True  # Ishlab chiqarish (production) muhitida False qiymatini bering
+    is_test_mode=True,  # Ishlab chiqarish (production) muhitida False qiymatini bering
+    api_key=os.getenv('PAYTECH_API_KEY')  # API key
 )
 payme_link = payme.create_payment(
     id=order.id,
@@ -154,7 +179,8 @@ click = ClickGateway(
     merchant_id='sizning_merchant_id',
     merchant_user_id='sizning_merchant_user_id',
     secret_key='sizning_secret_key',
-    is_test_mode=True  # Ishlab chiqarish (production) muhitida False qiymatini bering
+    is_test_mode=True,  # Ishlab chiqarish (production) muhitida False qiymatini bering
+    api_key=os.getenv('PAYTECH_API_KEY')  # API key
 )
 click_link = click.create_payment(
     id=order.id,

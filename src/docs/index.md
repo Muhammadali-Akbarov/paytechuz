@@ -34,6 +34,51 @@ pip install paytechuz[django]
 pip install paytechuz[fastapi]
 ```
 
+## API Key Sozlash
+
+**⚠️ Muhim**: PayTechUZ ishlatish uchun API key talab qilinadi.
+
+### API Key Olish
+
+API key olish uchun Telegram'da **@muhammadali_me** bilan bog'laning.
+
+### Sozlash Usullari
+
+#### 1-usul: Environment Variable (Tavsiya etiladi)
+
+```bash
+# Linux/macOS
+export PAYTECH_API_KEY="sizning-api-key"
+
+# Windows
+set PAYTECH_API_KEY=sizning-api-key
+
+# .env faylida
+PAYTECH_API_KEY=sizning-api-key
+```
+
+#### 2-usul: Kodda To'g'ridan-to'g'ri
+
+```python
+from paytechuz.gateways.payme import PaymeGateway
+
+gateway = PaymeGateway(
+    payme_id="...",
+    payme_key="...",
+    api_key="sizning-api-key"  # API key ni to'g'ridan-to'g'ri bering
+)
+```
+
+### Xatoliklarni Hal Qilish
+
+**Xato**: "Missing api_key for paytechuz"
+- **Yechim**: `PAYTECH_API_KEY` environment variable ni sozlang yoki `api_key` parametrini bering
+
+**Xato**: "Invalid api_key for paytechuz"
+- **Yechim**: API key to'g'riligini tekshiring. Agar muammo davom etsa, @muhammadali_me bilan bog'laning
+
+Batafsil ma'lumot uchun: [API_KEY_SETUP.md](../API_KEY_SETUP.md)
+
 ## Asosiy foydalanish
 
 1. Kutubxonani o'rnating

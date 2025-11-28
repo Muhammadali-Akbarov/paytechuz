@@ -5,7 +5,7 @@ This library provides a unified interface for working with Payme, Click, and Atm
 payment systems in Uzbekistan. It supports Django, Flask, and FastAPI.
 """
 
-__version__ = '0.3.7'
+__version__ = '0.3.13'
 
 # Import framework integrations - these imports are used to check availability
 # of frameworks, not for direct usage
@@ -34,26 +34,4 @@ from paytechuz.gateways.atmos.client import AtmosGateway  # noqa: E402
 from paytechuz.core.constants import PaymentGateway  # noqa: E402
 
 
-def create_gateway(gateway_type: str, **kwargs) -> BasePaymentGateway:
-    """
-    Create a payment gateway instance.
-
-    Args:
-        gateway_type: Type of gateway ('payme', 'click', or 'atmos')
-        **kwargs: Gateway-specific configuration
-
-    Returns:
-        Payment gateway instance
-
-    Raises:
-        ValueError: If the gateway type is not supported
-        ImportError: If the required gateway module is not available
-    """
-    if gateway_type.lower() == PaymentGateway.PAYME.value:
-        return PaymeGateway(**kwargs)
-    if gateway_type.lower() == PaymentGateway.CLICK.value:
-        return ClickGateway(**kwargs)
-    if gateway_type.lower() == PaymentGateway.ATMOS.value:
-        return AtmosGateway(**kwargs)
-
-    raise ValueError(f"Unsupported gateway type: {gateway_type}")
+from paytechuz.factory import create_gateway

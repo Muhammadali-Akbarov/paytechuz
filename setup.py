@@ -8,7 +8,7 @@ long_description = (here / "README.md").read_text(encoding="utf-8")
 
 setup(
     name='paytechuz',
-    version='0.3.7',
+    version='0.3.13',
     license='MIT',
     author="Muhammadali Akbarov",
     author_email='muhammadali17abc@gmail.com',
@@ -21,7 +21,7 @@ setup(
     package_dir={'': 'src'},
     include_package_data=True,
     package_data={
-        '': ['*.py'],
+        '': ['*.py', '*.so'],
     },
     python_requires='>=3.6',
 

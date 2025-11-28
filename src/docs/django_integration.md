@@ -62,6 +62,31 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
+```
+
+## API Key Sozlash
+
+PayTechUZ ishlatish uchun API key kerak. API key olish uchun Telegram'da **@muhammadali_me** bilan bog'laning.
+
+API key ni environment variable sifatida sozlang:
+
+```bash
+# Linux/macOS
+export PAYTECH_API_KEY="sizning-api-key"
+
+# Windows
+set PAYTECH_API_KEY=sizning-api-key
+```
+
+Yoki Django settings.py da:
+
+```python
+import os
+
+# API Key
+PAYTECH_API_KEY = os.environ.get('PAYTECH_API_KEY')
+```
+
 ## Sozlamalar konfiguratsiyasi
 
 `settings.py` faylingizga PAYTECHUZ sozlamalarini qo'shing. Barcha to'lov tizimlari uchun yagona konfiguratsiya formatidan foydalaning:
@@ -230,7 +255,8 @@ def create_payment_link(request, order_id):
             payme = PaymeGateway(
                 payme_id=payme_config['PAYME_ID'],
                 payme_key=payme_config['PAYME_KEY'],
-                is_test_mode=payme_config.get('IS_TEST_MODE', True)
+                is_test_mode=payme_config.get('IS_TEST_MODE', True),
+                api_key=settings.PAYTECH_API_KEY  # API key
             )
             payment_link = payme.create_payment(
                 id=order.id,
@@ -246,7 +272,8 @@ def create_payment_link(request, order_id):
                 merchant_id=click_config['MERCHANT_ID'],
                 merchant_user_id=click_config['MERCHANT_USER_ID'],
                 secret_key=click_config['SECRET_KEY'],
-                is_test_mode=click_config.get('IS_TEST_MODE', True)
+                is_test_mode=click_config.get('IS_TEST_MODE', True),
+                api_key=settings.PAYTECH_API_KEY  # API key
             )
             payment_link = click.create_payment(
                 id=order.id,
@@ -263,7 +290,8 @@ def create_payment_link(request, order_id):
                 consumer_secret=atmos_config['CONSUMER_SECRET'],
                 store_id=atmos_config['STORE_ID'],
                 terminal_id=atmos_config.get('TERMINAL_ID'),
-                is_test_mode=atmos_config.get('IS_TEST_MODE', True)
+                is_test_mode=atmos_config.get('IS_TEST_MODE', True),
+                api_key=settings.PAYTECH_API_KEY  # API key
             )
             atmos_payment = atmos.create_payment(
                 account_id=order.id,
@@ -319,13 +347,15 @@ Click payment gateway karta tokeni bilan to'lovni quyidagi 3 bosqichda amalga os
 
 ```python
 from paytechuz.gateways.click import ClickGateway
+from django.conf import settings
 
 click = ClickGateway(
     service_id='sizning_service_id',
     merchant_id='sizning_merchant_id',
     merchant_user_id='sizning_merchant_user_id',
     secret_key='sizning_secret_key',
-    is_test_mode=True
+    is_test_mode=True,
+    api_key=settings.PAYTECH_API_KEY  # API key
 )
 
 # Karta tokeni so'rash

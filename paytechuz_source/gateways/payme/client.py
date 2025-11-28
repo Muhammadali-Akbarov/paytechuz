@@ -1,17 +1,19 @@
 """
 Payme payment gateway client.
+This is a thin wrapper that provides a clean interface but delegates to internal implementation.
 """
 import logging
 from typing import Dict, Any, Optional, Union
-import base64
 
 from paytechuz.core.base import BasePaymentGateway
 from paytechuz.core.http import HttpClient
 from paytechuz.core.constants import PaymeNetworks
-from paytechuz.core.utils import format_amount, handle_exceptions
+from paytechuz.core.utils import handle_exceptions
+from paytechuz.license import validate_api_key
 
 from .cards import PaymeCards
 from .receipts import PaymeReceipts
+from .internal import PaymeGatewayInternal
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,8 @@ class PaymeGateway(BasePaymentGateway):
         payme_id: str,
         payme_key: Optional[str] = None,
         fallback_id: Optional[str] = None,
-        is_test_mode: bool = False
+        is_test_mode: bool = False,
+        api_key: Optional[str] = None
     ):
         """
         Initialize the Payme gateway.
@@ -39,7 +42,11 @@ class PaymeGateway(BasePaymentGateway):
             payme_key: Payme merchant key for authentication
             fallback_id: Fallback merchant ID
             is_test_mode: Whether to use the test environment
+            api_key: PayTech API key for license validation (or set PAYTECH_API_KEY env var)
         """
+        # Validate license before initializing
+        validate_api_key(api_key)
+        
         super().__init__(is_test_mode)
         self.payme_id = payme_id
         self.payme_key = payme_key
@@ -57,6 +64,17 @@ class PaymeGateway(BasePaymentGateway):
             http_client=self.http_client,
             payme_id=payme_id,
             payme_key=payme_key
+        )
+
+        # Initialize internal implementation
+        self._internal = PaymeGatewayInternal(
+            payme_id=payme_id,
+            payme_key=payme_key,
+            fallback_id=fallback_id,
+            is_test_mode=is_test_mode,
+            http_client=self.http_client,
+            cards=self.cards,
+            receipts=self.receipts
         )
 
     def generate_pay_link(
@@ -89,21 +107,7 @@ class PaymeGateway(BasePaymentGateway):
         ----------
         https://developer.help.paycom.uz/initsializatsiya-platezhey/
         """
-        # Convert amount to tiyin (1 som = 100 tiyin)
-        amount_tiyin = int(float(amount) * 100)
-
-        # Build parameters
-        params = (
-            f'm={self.payme_id};'
-            f'ac.{account_field_name}={id};'
-            f'a={amount_tiyin};'
-            f'c={return_url}'
-        )
-        encoded_params = base64.b64encode(params.encode("utf-8")).decode("utf-8")
-
-        # Return URL based on environment
-        base_url = "https://test.paycom.uz" if self.is_test_mode else "https://checkout.paycom.uz"
-        return f"{base_url}/{encoded_params}"
+        return self._internal.generate_pay_link(id, amount, return_url, account_field_name)
 
     async def generate_pay_link_async(
         self,
@@ -131,12 +135,7 @@ class PaymeGateway(BasePaymentGateway):
         str
             Payme checkout URL with encoded parameters.
         """
-        return self.generate_pay_link(
-            id=id,
-            amount=amount,
-            return_url=return_url,
-            account_field_name=account_field_name
-        )
+        return self.generate_pay_link(id, amount, return_url, account_field_name)
 
     @handle_exceptions
     def create_payment(
@@ -158,12 +157,7 @@ class PaymeGateway(BasePaymentGateway):
         Returns:
             str: Payme payment URL
         """
-        return self.generate_pay_link(
-            id=id,
-            amount=amount,
-            return_url=return_url,
-            account_field_name=account_field_name
-        )
+        return self.generate_pay_link(id, amount, return_url, account_field_name)
 
     @handle_exceptions
     async def create_payment_async(
@@ -185,14 +179,8 @@ class PaymeGateway(BasePaymentGateway):
         Returns:
             str: Payme payment URL
         """
-        return await self.generate_pay_link_async(
-            id=id,
-            amount=amount,
-            return_url=return_url,
-            account_field_name=account_field_name
-        )
+        return await self.generate_pay_link_async(id, amount, return_url, account_field_name)
 
-    @handle_exceptions
     def check_payment(self, transaction_id: str) -> Dict[str, Any]:
         """
         Check payment status using Payme receipts.
@@ -203,34 +191,8 @@ class PaymeGateway(BasePaymentGateway):
         Returns:
             Dict containing payment status and details
         """
-        receipt_data = self.receipts.check(receipt_id=transaction_id)
+        return self._internal.check_payment(transaction_id)
 
-        # Extract receipt status
-        receipt = receipt_data.get('receipt', {})
-        status = receipt.get('state')
-
-        # Map Payme status to our status
-        status_mapping = {
-            0: 'created',
-            1: 'waiting',
-            2: 'paid',
-            3: 'cancelled',
-            4: 'refunded'
-        }
-
-        mapped_status = status_mapping.get(status, 'unknown')
-
-        return {
-            'transaction_id': transaction_id,
-            'status': mapped_status,
-            'amount': receipt.get('amount') / 100,  # Convert from tiyin to som
-            'paid_at': receipt.get('pay_time'),
-            'created_at': receipt.get('create_time'),
-            'cancelled_at': receipt.get('cancel_time'),
-            'raw_response': receipt_data
-        }
-
-    @handle_exceptions
     def cancel_payment(
         self,
         transaction_id: str,
@@ -246,18 +208,4 @@ class PaymeGateway(BasePaymentGateway):
         Returns:
             Dict containing cancellation status and details
         """
-        receipt_data = self.receipts.cancel(
-            receipt_id=transaction_id,
-            reason=reason or "Cancelled by merchant"
-        )
-
-        # Extract receipt status
-        receipt = receipt_data.get('receipt', {})
-        status = receipt.get('state')
-
-        return {
-            'transaction_id': transaction_id,
-            'status': 'cancelled' if status == 3 else 'unknown',
-            'cancelled_at': receipt.get('cancel_time'),
-            'raw_response': receipt_data
-        }
+        return self._internal.cancel_payment(transaction_id, reason)

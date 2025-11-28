@@ -35,6 +35,17 @@ pip install paytechuz[django]
 pip install paytechuz[fastapi]
 ```
 
+## API Key Configuration
+
+**📝 Important:** Starting from version 0.3.8, PayTechUZ requires a valid API key for license validation.
+
+```bash
+# Set your API key as an environment variable
+export PAYTECH_API_KEY="your-api-key-here"
+```
+
+To obtain a production API key, contact **@muhammadali_me** on Telegram.
+
 ## Quick Start
 
 > 💡 **Need help?** Check out our [complete documentation](https://pay-tech.uz) for detailed guides and examples.
@@ -50,7 +61,8 @@ from paytechuz.gateways.atmos import AtmosGateway
 payme = PaymeGateway(
     payme_id="your_payme_id",
     payme_key="your_payme_key",
-    is_test_mode=True  # Set to False in production environment
+    is_test_mode=True,  # Set to False in production environment
+    api_key="your_api_key"  # Or set PAYTECH_API_KEY environment variable
 )
 
 # Initialize Click gateway
@@ -59,7 +71,8 @@ click = ClickGateway(
     merchant_id="your_merchant_id",
     merchant_user_id="your_merchant_user_id",
     secret_key="your_secret_key",
-    is_test_mode=True  # Set to False in production environment
+    is_test_mode=True,  # Set to False in production environment
+    api_key="your_api_key"  # Or set PAYTECH_API_KEY environment variable
 )
 
 # Initialize Atmos gateway
@@ -68,7 +81,8 @@ atmos = AtmosGateway(
     consumer_secret="your_consumer_secret",
     store_id="your_store_id",
     terminal_id="your_terminal_id",  # optional
-    is_test_mode=True  # Set to False in production environment
+    is_test_mode=True,  # Set to False in production environment
+    api_key="your_api_key"  # Or set PAYTECH_API_KEY environment variable
 )
 
 # Generate payment links
