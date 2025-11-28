@@ -37,7 +37,7 @@ pip install paytechuz[fastapi]
 
 ## API Key Configuration
 
-**📝 Important:** PayTechUZ requires a valid API key for license validation.
+**Important:** PayTechUZ requires a valid API key for license validation.
 
 ```bash
 # Set your API key as an environment variable
